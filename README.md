@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Zootomia
 
-## Getting Started
+## Sobre o Projeto
+O Zootomia é um sistema de apoio ao estudo de anatomia de animais de companhia, pensado para auxiliar estudantes de Medicina Veterinária na preparação para aulas práticas e avaliações. O projeto faz parte da disciplina de Projeto de Software II da Universidade Federal de Santa Maria e atualmente encontra-se em sua fase inicial de desenvolvimento.
 
-First, run the development server:
+## O Problema
+O ensino de anatomia frequentemente esbarra na questão do acesso restrito aos laboratórios físicos. Isso faz com que os alunos precisem revisar o conteúdo utilizando apenas livros e imagens bidimensionais, o que é distante da realidade exigida nas provas práticas. A ideia do sistema é oferecer um recurso extra e mais próximo da realidade que os estudantes possam acessar diretamente de seus computadores.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Escopo Atual: Osteologia
+Como estamos nos primeiros passos da construção do software, decidimos focar o desenvolvimento inicial exclusivamente na **osteologia** de cães e gatos. Isso nos permitirá estruturar a base da aplicação antes de pensar em expandir para outros sistemas anatômicos.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Funcionalidades Previstas
+Nesta fase inicial, estamos planejando implementar as seguintes funcionalidades:
+*   **Visualização anatômica interativa:** O objetivo é permitir que o usuário explore as estruturas ósseas por diferentes ângulos.
+*   **Testes de conhecimento (Quiz):** Planejamos incluir um espaço onde o aluno seja desafiado a identificar as estruturas anatômicas para testar seus conhecimentos e acompanhar seu progresso.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Público e Validação
+*   **Usuários Finais:** O sistema tem como foco os estudantes matriculados na disciplina ZOO-00171 – Anatomía de Animales de Compañía, ministrada no Chile.
+*   **Especialistas de Domínio:** Para validar o desenvolvimento, contamos com o apoio de estudantes chilenos da Universidad Santo Tomás (UST), que nos ajudam a entender as necessidades reais da disciplina e a direcionar o projeto.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Possíveis Materiais de Referência
+Ainda estamos definindo os materiais que servirão de base definitiva para a extração do conteúdo e imagens. Algumas das referências que encontramos e estamos avaliando utilizar são:
+*   Atlas de Osteología de los Mamíferos Domésticos[cite: 3].
+*   Atlas del Sistema Nervioso Periférico en el Perro[cite: 2] (material mapeado para possíveis etapas futuras).
 
-## Learn More
+## Tecnologias e Design
+*   **Desenvolvimento:** A aplicação está sendo construída com o framework Next.js.
+*   **Interface:** Fizemos uma visualização inicial para guiar a interface do projeto no Figma. O protótipo pode ser acessado através deste [link de design](https://www.figma.com/make/6LhqJor9kFEnbuyjUK8ID2/Zootomia-App-UI-Design?p=f).
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Equipe
+O projeto é desenvolvido pelos seguintes estudantes da Universidade Federal de Santa Maria[cite: 1]:
+*   Isadora Spohr
+*   Gustavo Pott
+*   Luiza Manoelle dos Santos
+*   Leonardo Dallanora
