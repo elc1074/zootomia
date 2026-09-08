@@ -20,8 +20,8 @@ Nesta fase inicial, estamos planejando implementar as seguintes funcionalidades:
 
 ## Possíveis Materiais de Referência
 Ainda estamos definindo os materiais que servirão de base definitiva para a extração do conteúdo e imagens. Algumas das referências que encontramos e estamos avaliando utilizar são:
-*   Atlas de Osteología de los Mamíferos Domésticos[cite: 3].
-*   Atlas del Sistema Nervioso Periférico en el Perro[cite: 2] (material mapeado para possíveis etapas futuras).
+*   Atlas de Osteología de los Mamíferos Domésticos
+*   Atlas del Sistema Nervioso Periférico en el Perro (material mapeado para possíveis etapas futuras).
 
 ## Tecnologias e Design
 *   **Desenvolvimento:** A aplicação está sendo construída com o framework Next.js.
