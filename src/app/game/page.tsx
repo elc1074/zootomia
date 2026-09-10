@@ -1,62 +1,80 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { IMAGES, type Marker } from "@/data/anatomy";
 
-const QUESTIONS = [
-  { label: "Fêmur", pointer: { x: 265, y: 228 }, options: ["Fêmur", "Tíbia", "Úmero", "Rádio"], correct: 0 },
-  { label: "Crânio", pointer: { x: 72, y: 82 }, options: ["Pelve", "Crânio", "Escápula", "Esterno"], correct: 1 },
-  { label: "Pelve", pointer: { x: 310, y: 170 }, options: ["Fíbula", "Escápula", "Vértebra", "Pelve"], correct: 3 },
-];
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
-const VIEW_LABELS: Record<number, string> = { 0: "Vista Frontal", 1: "Vista Lateral Esq.", 2: "Vista Dorsal", 3: "Vista Lateral Dir." };
+function normalize(s: string) {
+  return s
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
+type Question = { marker: Marker; options: string[]; correct: number };
+
+function buildQuestions(markers: Marker[]): Question[] {
+  return shuffle(markers).map((marker) => {
+    const distratores = shuffle(
+      markers.filter((m) => m.name !== marker.name).map((m) => m.name),
+    ).slice(0, 3);
+    const options = shuffle([marker.name, ...distratores]);
+    return { marker, options, correct: options.indexOf(marker.name) };
+  });
+}
 
 export default function Game() {
+  const image = IMAGES[0];
+  const questions = useMemo(() => buildQuestions(image.markers), [image]);
+
   const [score, setScore] = useState(0);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [textAnswer, setTextAnswer] = useState("");
   const [showOptions, setShowOptions] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
-  const [viewIndex, setViewIndex] = useState(0);
 
-  function rotateView(dir: "up" | "down" | "left" | "right") {
-    setViewIndex((v) => {
-      if (dir === "left") return (v + 3) % 4;
-      if (dir === "right") return (v + 1) % 4;
-      if (dir === "up") return (v + 2) % 4;
-      return v; 
-    });
+  const question = questions[questionIndex % questions.length];
+
+  function respostaCerta(texto: string) {
+    const alvo = [question.marker.name, ...(question.marker.aceita ?? [])].map(normalize);
+    return alvo.includes(normalize(texto));
   }
 
-  const question = QUESTIONS[questionIndex % QUESTIONS.length];
+  function proxima() {
+    setSelectedOption(null);
+    setFeedback(null);
+    setShowOptions(false);
+    setTextAnswer("");
+    setQuestionIndex((i) => i + 1);
+  }
 
   function handleOptionSelect(idx: number) {
-    if (selectedOption !== null) return;
+    if (selectedOption !== null || feedback) return;
     setSelectedOption(idx);
     const isCorrect = idx === question.correct;
     setFeedback(isCorrect ? "correct" : "wrong");
     if (isCorrect) setScore((s) => s + 10);
-    setTimeout(() => {
-      setSelectedOption(null);
-      setFeedback(null);
-      setShowOptions(false);
-      setTextAnswer("");
-      setQuestionIndex((i) => i + 1);
-    }, 1100);
+    setTimeout(proxima, 1100);
   }
 
   function handleTextSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const isCorrect = textAnswer.trim().toLowerCase() === question.label.toLowerCase();
+    if (feedback) return;
+    const isCorrect = respostaCerta(textAnswer);
     setFeedback(isCorrect ? "correct" : "wrong");
     if (isCorrect) setScore((s) => s + 10);
-    setTimeout(() => {
-      setFeedback(null);
-      setTextAnswer("");
-      setShowOptions(false);
-      setQuestionIndex((i) => i + 1);
-    }, 1100);
+    setTimeout(proxima, 1100);
   }
 
   return (
@@ -85,7 +103,7 @@ export default function Game() {
             color: "#8DC9A0",
             border: "1px solid rgba(141,201,160,0.18)",
             cursor: "pointer",
-            textDecoration: "none"
+            textDecoration: "none",
           }}
         >
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -98,7 +116,7 @@ export default function Game() {
         <div className="flex items-center gap-1">
           <ScoreTile label="PONTUAÇÃO" value={score} color="#8DC9A0" large />
           <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
-          <ScoreTile label="QUESTÃO" value={`${(questionIndex % QUESTIONS.length) + 1} / ${QUESTIONS.length}`} color="#E8C252" />
+          <ScoreTile label="QUESTÃO" value={`${(questionIndex % questions.length) + 1} / ${questions.length}`} color="#E8C252" />
           <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
           <ScoreTile label="ANIMAL" value="Cachorro" color="#C4845A" />
         </div>
@@ -115,7 +133,7 @@ export default function Game() {
           >
             <span style={{ fontSize: "0.9rem" }}>{feedback === "correct" ? "✓" : "✗"}</span>
             <span style={{ fontSize: "0.78rem", fontWeight: 700, color: feedback === "correct" ? "#8DC9A0" : "#E09080" }}>
-              {feedback === "correct" ? "Correto! +10 pts" : `Era: ${question.label}`}
+              {feedback === "correct" ? "Correto! +10 pts" : `Era: ${question.marker.name}`}
             </span>
           </div>
         ) : (
@@ -125,8 +143,7 @@ export default function Game() {
 
       {/* ─── Main: two-column layout ─── */}
       <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
-
-        {/* Left: animal model */}
+        {/* Left: anatomy image */}
         <div
           className="flex flex-col overflow-hidden"
           style={{
@@ -143,101 +160,57 @@ export default function Game() {
             <div className="flex items-center gap-2">
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E8C252" }} />
               <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#5C3D20", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                Identifique a estrutura
+                Qual osso a seta indica?
               </span>
             </div>
             <span style={{ fontSize: "0.68rem", color: "rgba(92,61,32,0.5)", fontWeight: 600, fontStyle: "italic" }}>
-              Canis lupus familiaris
+              {image.especie}
             </span>
           </div>
 
-          {/* Model canvas */}
+          {/* Image + arrow */}
           <div
             className="flex-1 flex items-center justify-center relative"
             style={{
               minHeight: 0,
               background: "radial-gradient(ellipse at 50% 55%, rgba(141,201,160,0.08) 0%, transparent 65%)",
-              padding: "16px",
+              padding: "24px",
             }}
           >
-            <RotateArrow dir="up" onClick={() => rotateView("up")} style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)" }} />
-            <RotateArrow dir="down" onClick={() => rotateView("down")} style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)" }} />
-            <RotateArrow dir="left" onClick={() => rotateView("left")} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
-            <RotateArrow dir="right" onClick={() => rotateView("right")} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }} />
-
-            <div
-              style={{
-                width: "100%",
-                maxWidth: 360,
-                aspectRatio: "4/3",
-                background: "rgba(160,120,80,0.14)",
-                border: "2px dashed rgba(100,70,40,0.25)",
-                borderRadius: 6,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 12,
-                position: "relative",
-              }}
-            >
-              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.08 }} preserveAspectRatio="none">
-                <line x1="0" y1="0" x2="100%" y2="100%" stroke="#5C3D20" strokeWidth="1" />
-                <line x1="100%" y1="0" x2="0" y2="100%" stroke="#5C3D20" strokeWidth="1" />
-              </svg>
-
-              <div
-                style={{
-                  position: "absolute",
-                  top: 10, right: 10,
-                  background: "rgba(100,70,40,0.16)",
-                  border: "1px solid rgba(100,70,40,0.24)",
-                  borderRadius: 4,
-                  padding: "3px 10px",
-                  fontSize: "0.62rem",
-                  fontWeight: 700,
-                  color: "rgba(92,61,32,0.7)",
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                }}
+            <div style={{ position: "relative", width: "100%", maxWidth: 460 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={image.src}
+                alt={image.titulo}
+                style={{ display: "block", width: "100%", borderRadius: 6, background: "rgba(160,120,80,0.14)" }}
+              />
+              <svg
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }}
               >
-                {VIEW_LABELS[viewIndex]}
-              </div>
-
-              <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style={{ opacity: 0.4 }}>
-                <rect x="4" y="8" width="36" height="28" rx="3" stroke="#5C3D20" strokeWidth="2" />
-                <circle cx="16" cy="20" r="5" stroke="#5C3D20" strokeWidth="2" />
-                <path d="M4 30l10-10 7 7 6-6 13 13" stroke="#5C3D20" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <defs>
+                  <marker id="ponta" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <path d="M0 0L10 5L0 10z" fill="#E8C252" />
+                  </marker>
+                </defs>
+                <line
+                  x1={`${(question.marker.x - 0.16) * 100}%`}
+                  y1={`${(question.marker.y - 0.16) * 100}%`}
+                  x2={`${question.marker.x * 100}%`}
+                  y2={`${question.marker.y * 100}%`}
+                  stroke="#E8C252"
+                  strokeWidth={2.5}
+                  markerEnd="url(#ponta)"
+                  vectorEffect="non-scaling-stroke"
+                />
+                <circle cx={`${question.marker.x * 100}%`} cy={`${question.marker.y * 100}%`} r={4} fill="#E8C252" />
               </svg>
-              <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "rgba(92,61,32,0.55)" }}>
-                Modelo do Animal
-              </p>
-              <p style={{ fontSize: "0.65rem", color: "rgba(92,61,32,0.38)", fontWeight: 600 }}>
-                Placeholder · Vista {viewIndex + 1} de 4
-              </p>
-
-              <div
-                style={{
-                  position: "absolute",
-                  left: "58%",
-                  top: "52%",
-                  transform: "translate(-50%, -50%)",
-                  pointerEvents: "none",
-                }}
-              >
-                <div style={{
-                  position: "absolute", inset: -9, borderRadius: "50%",
-                  border: "2px solid rgba(232,194,82,0.55)",
-                  animation: "ping 1.4s cubic-bezier(0,0,0.2,1) infinite",
-                }} />
-                <div style={{
-                  width: 13, height: 13, borderRadius: "50%",
-                  background: "#E8C252",
-                  border: "2.5px solid rgba(255,255,255,0.7)",
-                  boxShadow: "0 0 10px rgba(232,194,82,0.7)",
-                }} />
-              </div>
             </div>
+          </div>
+
+          <div className="shrink-0 px-6 py-2" style={{ borderTop: "1px solid rgba(100,70,40,0.18)" }}>
+            <span style={{ fontSize: "0.62rem", color: "rgba(92,61,32,0.45)", fontWeight: 600 }}>
+              Fonte: {image.fonte}
+            </span>
           </div>
         </div>
 
@@ -379,16 +352,6 @@ export default function Game() {
                         cursor: selectedOption !== null ? "default" : "pointer",
                         transition: "all 0.14s ease",
                       }}
-                      onMouseEnter={(e) => {
-                        if (selectedOption !== null) return;
-                        (e.currentTarget as HTMLElement).style.background = "rgba(58,158,111,0.12)";
-                        (e.currentTarget as HTMLElement).style.borderColor = "rgba(58,158,111,0.4)";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (selectedOption !== null) return;
-                        (e.currentTarget as HTMLElement).style.background = "rgba(180,140,100,0.18)";
-                        (e.currentTarget as HTMLElement).style.borderColor = "rgba(100,70,40,0.2)";
-                      }}
                     >
                       <span
                         style={{
@@ -414,12 +377,6 @@ export default function Game() {
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes ping {
-          75%, 100% { transform: scale(2.2); opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -437,38 +394,5 @@ function ScoreTile({ label, value, color, large }: { label: string; value: numbe
         </span>
       </div>
     </div>
-  );
-}
-
-interface RotateArrowProps {
-  dir: "up" | "down" | "left" | "right";
-  onClick: () => void;
-  style?: React.CSSProperties;
-}
-
-function RotateArrow({ dir, onClick, style }: RotateArrowProps) {
-  const rotations = { up: 0, right: 90, down: 180, left: 270 };
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      title={`Girar ${dir === "up" ? "acima" : dir === "down" ? "abaixo" : dir === "left" ? "esquerda" : "direita"}`}
-      style={{
-        ...style, width: 36, height: 36, borderRadius: 5,
-        border: `1.5px solid ${hovered ? "rgba(58,158,111,0.55)" : "rgba(100,70,40,0.28)"}`,
-        background: hovered ? "rgba(58,158,111,0.14)" : "rgba(180,140,100,0.22)",
-        color: hovered ? "#2C7A54" : "rgba(92,61,32,0.65)",
-        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-        transition: "all 0.14s ease", zIndex: 2, padding: 0,
-      }}
-    >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ transform: `rotate(${rotations[dir]}deg)` }}>
-        <path d="M8 13V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <path d="M4 7l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </button>
   );
 }
