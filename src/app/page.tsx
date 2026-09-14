@@ -7,11 +7,13 @@ import Image from "next/image"
 const NAV_ITEMS = [
   { label: "Jogar", icon: <PlayIcon />, href: "/game", primary: true },
   { label: "Galeria", icon: <GalleryIcon />, href: "/gallery", primary: false },
-  { label: "Sobre", icon: <InfoIcon />, href: "#", primary: false },
+  { label: "Sobre", icon: <InfoIcon />, href: "/about", primary: false },
   { label: "Sair", icon: <ExitIcon />, href: "#", primary: false },
 ];
 
 export default function Home() {
+  const [showExitModal, setShowExitModal] = React.useState(false);
+
   return (
     <div
       className="size-full flex overflow-hidden min-h-screen"
@@ -71,10 +73,18 @@ export default function Home() {
 
         {/* Nav */}
         <nav className="flex flex-col gap-2 flex-1">
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.map((item) => {
+            const isExit = item.label === "Sair";
+            return (
             <Link
               key={item.label}
-              href={item.href}
+              href={isExit ? "#" : item.href}
+              onClick={(e) => {
+                if (isExit) {
+                  e.preventDefault();
+                  setShowExitModal(true);
+                }
+              }}
               className="flex items-center gap-3 px-5 py-3 font-semibold w-full text-left"
               style={{
                 fontFamily: "'Nunito', sans-serif",
@@ -106,7 +116,8 @@ export default function Home() {
               <span className="shrink-0" style={{ opacity: 0.85 }}>{item.icon}</span>
               {item.label}
             </Link>
-          ))}
+            );
+          })}
         </nav>
 
         {/* Footer */}
@@ -173,6 +184,40 @@ export default function Home() {
           </span>
         </div>
       </main>
+
+      {showExitModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center"
+        }}>
+          <div style={{ background: "#C8B498", padding: 32, borderRadius: 8, boxShadow: "0 10px 30px rgba(0,0,0,0.5)", border: "1px solid rgba(100,70,40,0.2)" }}>
+            <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: "#1A2E22", marginBottom: 24, fontFamily: "'Nunito', sans-serif" }}>
+              Tem certeza de que deseja sair?
+            </h2>
+            <div className="flex gap-4 justify-end">
+              <button 
+                onClick={() => setShowExitModal(false)}
+                style={{ padding: "8px 16px", borderRadius: 6, background: "rgba(100,70,40,0.15)", color: "#1A2E22", fontWeight: 700, border: "none", cursor: "pointer" }}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  // @ts-expect-error - Simulate exit mechanism for electron
+                  if (typeof window !== "undefined" && window.electron) {
+                    // @ts-expect-error - Simulate exit mechanism for electron
+                    window.electron.exit();
+                  } else {
+                    window.close();
+                  }
+                }}
+                style={{ padding: "8px 16px", borderRadius: 6, background: "#C4845A", color: "#FFF", fontWeight: 700, border: "none", cursor: "pointer" }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
