@@ -1,0 +1,3 @@
+Coloque aqui as imagens recortadas do PDF.
+O nome do arquivo deve bater com o campo "src" em src/data/anatomy.ts.
+Ex.: cao-esqueleto-lateral.jpg

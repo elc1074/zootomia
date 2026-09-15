@@ -1,91 +1,114 @@
 "use client";
 
-import Link from "next/link";
-import React, { useState, useEffect, useMemo } from "react";
-import Image from "next/image";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { IMAGES, type AnatomyImage, type Marker } from "@/data/anatomy";
 
-const ALL_QUESTIONS = [
-  { id: 1, image: "/images/dog_bone.svg", species: "dog", correctAnswer: "Fêmur" },
-  { id: 2, image: "/images/dog_bone.svg", species: "dog", correctAnswer: "Crânio" },
-  { id: 3, image: "/images/dog_bone.svg", species: "dog", correctAnswer: "Pelve" },
-  { id: 4, image: "/images/dog_bone.svg", species: "dog", correctAnswer: "Úmero" },
-  { id: 5, image: "/images/dog_bone.svg", species: "dog", correctAnswer: "Rádio" },
-  { id: 6, image: "/images/cat_bone.svg", species: "cat", correctAnswer: "Fíbula" },
-  { id: 7, image: "/images/cat_bone.svg", species: "cat", correctAnswer: "Esterno" },
-  { id: 8, image: "/images/cat_bone.svg", species: "cat", correctAnswer: "Escápula" },
-  { id: 9, image: "/images/cat_bone.svg", species: "cat", correctAnswer: "Vértebra" },
-  { id: 10, image: "/images/cat_bone.svg", species: "cat", correctAnswer: "Tíbia" },
-];
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function normalize(s: string) {
+  return s
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
+type Question = { marker: Marker; options: string[]; correct: number };
+
+function buildQuestions(markers: Marker[]): Question[] {
+  return shuffle(markers).map((marker) => {
+    const distratores = shuffle(
+      markers.filter((m) => m.name !== marker.name).map((m) => m.name),
+    ).slice(0, 3);
+    const options = shuffle([marker.name, ...distratores]);
+    return { marker, options, correct: options.indexOf(marker.name) };
+  });
+}
 
 export default function Game() {
   const router = useRouter();
-  
-  // Game state
-  const [questions, setQuestions] = useState<typeof ALL_QUESTIONS>([]);
+
+  const [imageId, setImageId] = useState(IMAGES[0].id);
+  const image = IMAGES.find((img) => img.id === imageId) ?? IMAGES[0];
+
+  // O sorteio usa Math.random(), então só pode rodar no cliente:
+  // gerar durante o SSR faria o servidor e o navegador sortearem
+  // ordens diferentes e o React reclamar de hydration mismatch.
+  const [questions, setQuestions] = useState<Question[] | null>(null);
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intencional: sorteio (Math.random) só pode acontecer no cliente
+    setQuestions(buildQuestions(image.markers));
+  }, [image]);
+
   const [questionIndex, setQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
   const [gameState, setGameState] = useState<"IN_PROGRESS" | "FINISHED">("IN_PROGRESS");
   const [questionState, setQuestionState] = useState<"AWAITING_TEXT_ANSWER" | "SHOWING_ALTERNATIVES" | "ANSWERED">("AWAITING_TEXT_ANSWER");
-  
-  // Interaction state
+
   const [textAnswer, setTextAnswer] = useState("");
   const [emptyError, setEmptyError] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
-  
-  // Modals / Image errors
   const [showExitModal, setShowExitModal] = useState(false);
-  const [imageError, setImageError] = useState(false);
-  
-  // Initialize game
-  useEffect(() => {
-    // Shuffle and pick 10
-    const shuffled = [...ALL_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, 10);
-    setQuestions(shuffled);
-  }, []);
 
-  const currentQuestion = questions[questionIndex];
+  function trocarImagem(id: string) {
+    setImageId(id);
+    setQuestionIndex(0);
+    setScore(0);
+    setCorrectCount(0);
+    setIncorrectCount(0);
+    setGameState("IN_PROGRESS");
+    setQuestionState("AWAITING_TEXT_ANSWER");
+    setTextAnswer("");
+    setEmptyError(false);
+    setSelectedOption(null);
+    setFeedback(null);
+    setShowExitModal(false);
+  }
 
-  // Generate alternatives for the current question
-  const alternatives = useMemo(() => {
-    if (!currentQuestion) return [];
-    
-    // Pick 3 random incorrect answers from ALL_QUESTIONS
-    const others = ALL_QUESTIONS
-      .filter(q => q.correctAnswer.toLowerCase() !== currentQuestion.correctAnswer.toLowerCase())
-      .map(q => q.correctAnswer);
-    
-    // Shuffle and pick 3 unique
-    const uniqueOthers = Array.from(new Set(others)).sort(() => Math.random() - 0.5).slice(0, 3);
-    
-    // Combine with correct answer
-    const combined = [currentQuestion.correctAnswer, ...uniqueOthers];
-    
-    // Shuffle final options
-    return combined.sort(() => Math.random() - 0.5);
-  }, [currentQuestion]);
+  if (!questions) {
+    return (
+      <div
+        className="size-full flex items-center justify-center min-h-screen"
+        style={{ background: "#C8B498", fontFamily: "'Nunito', sans-serif", color: "#5C3D20", fontWeight: 700 }}
+      >
+        Carregando…
+      </div>
+    );
+  }
+  if (questions.length === 0) return null;
+
+  const question = questions[questionIndex];
+
+  function respostaCerta(texto: string) {
+    const alvo = [question.marker.name, ...(question.marker.aceita ?? [])].map(normalize);
+    return alvo.includes(normalize(texto));
+  }
 
   function advanceQuestion() {
     setTimeout(() => {
-      setFeedback(null);
       setSelectedOption(null);
+      setFeedback(null);
       setTextAnswer("");
+      setEmptyError(false);
       setQuestionState("AWAITING_TEXT_ANSWER");
-      setImageError(false);
-      
-      if (questionIndex + 1 >= questions.length) {
+
+      if (questionIndex + 1 >= questions!.length) {
         setGameState("FINISHED");
       } else {
-        setQuestionIndex(i => i + 1);
+        setQuestionIndex((i) => i + 1);
       }
     }, 1100);
-  }
-
-  function normalize(str: string) {
-    return str.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
 
   function handleTextSubmit(e: React.FormEvent) {
@@ -95,13 +118,11 @@ export default function Game() {
       return;
     }
     setEmptyError(false);
-    
-    const isCorrect = normalize(textAnswer) === normalize(currentQuestion.correctAnswer);
-    
-    if (isCorrect) {
+
+    if (respostaCerta(textAnswer)) {
       setFeedback("correct");
-      setScore(s => s + 10);
-      setCorrectCount(c => c + 1);
+      setScore((s) => s + 10);
+      setCorrectCount((c) => c + 1);
       setQuestionState("ANSWERED");
       advanceQuestion();
     } else {
@@ -110,21 +131,18 @@ export default function Game() {
     }
   }
 
-  function handleAlternativeSelect(opt: string) {
-    if (questionState === "ANSWERED") return;
-    
-    const isCorrect = normalize(opt) === normalize(currentQuestion.correctAnswer);
-    setSelectedOption(alternatives.indexOf(opt));
+  function handleAlternativeSelect(idx: number) {
+    if (questionState !== "SHOWING_ALTERNATIVES") return;
+    setSelectedOption(idx);
+    const isCorrect = idx === question.correct;
     setFeedback(isCorrect ? "correct" : "wrong");
     setQuestionState("ANSWERED");
-    
     if (isCorrect) {
-      setScore(s => s + 5);
-      setCorrectCount(c => c + 1);
+      setScore((s) => s + 5);
+      setCorrectCount((c) => c + 1);
     } else {
-      setIncorrectCount(c => c + 1);
+      setIncorrectCount((c) => c + 1);
     }
-    
     advanceQuestion();
   }
 
@@ -136,14 +154,45 @@ export default function Game() {
     }
   }
 
-  if (questions.length === 0) return null;
+  const answeredViaTexto = questionState === "ANSWERED" && selectedOption === null;
+  const mostrarAlternativas = questionState === "SHOWING_ALTERNATIVES" || (questionState === "ANSWERED" && selectedOption !== null);
 
   return (
     <div
       className="size-full flex flex-col overflow-hidden min-h-screen"
       style={{ background: "#C8B498", fontFamily: "'Nunito', sans-serif" }}
     >
-      {/* Header */}
+      <style>{`
+        .marker-dot {
+          position: absolute;
+          top: 0;
+          left: 0;
+          transform: translate(-50%, -50%);
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #E8C252;
+          box-shadow: 0 0 0 3px rgba(28,53,40,0.85), 0 1px 5px rgba(0,0,0,0.35);
+        }
+        .marker-ping {
+          position: absolute;
+          top: 0;
+          left: 0;
+          transform: translate(-50%, -50%);
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: rgba(232,194,82,0.55);
+          animation: marker-pulse 1.7s cubic-bezier(0,0,0.25,1) infinite;
+        }
+        @keyframes marker-pulse {
+          0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+          70% { transform: translate(-50%, -50%) scale(3.4); opacity: 0; }
+          100% { transform: translate(-50%, -50%) scale(3.4); opacity: 0; }
+        }
+      `}</style>
+
+      {/* ─── Scoreboard header ─── */}
       <header
         className="flex items-center justify-between px-8 py-0 shrink-0"
         style={{
@@ -173,79 +222,162 @@ export default function Game() {
         </button>
 
         {gameState === "IN_PROGRESS" && (
-          <div className="flex items-center gap-1">
-            <ScoreTile label="PONTUAÇÃO" value={score} color="#8DC9A0" large />
-            <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
-            <ScoreTile label="QUESTÃO" value={`${questionIndex + 1} / ${questions.length}`} color="#E8C252" />
-            <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
-            <ScoreTile label="RESTANTES" value={questions.length - questionIndex} color="#C4845A" />
-          </div>
+          <>
+            <div className="flex items-center gap-1">
+              <ScoreTile label="PONTUAÇÃO" value={score} color="#8DC9A0" large />
+              <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
+              <ScoreTile label="QUESTÃO" value={`${questionIndex + 1} / ${questions.length}`} color="#E8C252" />
+              <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
+              {IMAGES.length > 1 ? (
+                <ImageSelector images={IMAGES} value={imageId} onChange={trocarImagem} />
+              ) : (
+                <ScoreTile label="ANIMAL" value={image.especie} color="#C4845A" />
+              )}
+            </div>
+
+            {/* Feedback inline (só revela a resposta quando a questão já foi respondida de vez) */}
+            {questionState === "ANSWERED" && feedback ? (
+              <div
+                className="flex items-center gap-2 px-4 py-1.5"
+                style={{
+                  borderRadius: 5,
+                  background: feedback === "correct" ? "rgba(58,158,111,0.2)" : "rgba(180,60,40,0.2)",
+                  border: `1px solid ${feedback === "correct" ? "rgba(58,158,111,0.4)" : "rgba(180,60,40,0.4)"}`,
+                }}
+              >
+                <span style={{ fontSize: "0.9rem" }}>{feedback === "correct" ? "✓" : "✗"}</span>
+                <span style={{ fontSize: "0.78rem", fontWeight: 700, color: feedback === "correct" ? "#8DC9A0" : "#E09080" }}>
+                  {feedback === "correct" ? `Correto! +${answeredViaTexto ? 10 : 5} pts` : `Era: ${question.marker.name}`}
+                </span>
+              </div>
+            ) : (
+              <div style={{ width: 140 }} />
+            )}
+          </>
         )}
-        
-        {/* Empty space for flex alignment */}
-        <div style={{ width: 120 }}></div>
       </header>
 
-      {/* Main Content */}
+      {/* ─── Main content ─── */}
       {gameState === "IN_PROGRESS" ? (
         <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
-          {/* Left: Image */}
+          {/* Left: anatomy image */}
           <div
             className="flex flex-col overflow-hidden"
             style={{
-              flex: "0 0 55%",
+              flex: "0 0 68%",
               borderRight: "1px solid rgba(100,70,40,0.22)",
               background: "#C0A888",
             }}
           >
-            <div className="flex-1 flex items-center justify-center p-6 relative">
-              {imageError ? (
-                <div style={{ color: "rgba(180,60,40,0.8)", fontWeight: 700, fontSize: "1.2rem" }}>
-                  Falha ao carregar imagem
+            {/* Sub-header */}
+            <div
+              className="flex items-center justify-between px-6 py-3 shrink-0"
+              style={{ borderBottom: "1px solid rgba(100,70,40,0.18)" }}
+            >
+              <div className="flex items-center gap-2">
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E8C252" }} />
+                <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#5C3D20", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                  Qual osso está marcado?
+                </span>
+              </div>
+              <span style={{ fontSize: "0.68rem", color: "rgba(92,61,32,0.5)", fontWeight: 600, fontStyle: "italic" }}>
+                {image.especie}
+              </span>
+            </div>
+
+            {/* Image + marker */}
+            <div
+              className="flex-1 flex items-center justify-center relative"
+              style={{
+                minHeight: 0,
+                background: "radial-gradient(ellipse at 50% 55%, rgba(141,201,160,0.08) 0%, transparent 65%)",
+                padding: "24px",
+              }}
+            >
+              <div style={{ position: "relative", width: "100%", maxWidth: 780 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={image.src}
+                  alt={image.titulo}
+                  style={{ display: "block", width: "100%", borderRadius: 6, background: "rgba(160,120,80,0.14)" }}
+                />
+                <div
+                  key={`${imageId}-${questionIndex}`}
+                  style={{
+                    position: "absolute",
+                    left: `${question.marker.x * 100}%`,
+                    top: `${question.marker.y * 100}%`,
+                    width: 0,
+                    height: 0,
+                    pointerEvents: "none",
+                  }}
+                >
+                  <span className="marker-ping" />
+                  <span className="marker-dot" />
                 </div>
-              ) : (
-                <div className="relative w-full h-full max-w-lg max-h-lg flex items-center justify-center">
-                  <Image 
-                    src={currentQuestion.image} 
-                    alt="Modelo Anatômico"
-                    fill
-                    style={{ objectFit: "contain" }}
-                    onError={() => setImageError(true)}
-                  />
-                </div>
-              )}
+              </div>
+            </div>
+
+            <div className="shrink-0 px-6 py-2" style={{ borderTop: "1px solid rgba(100,70,40,0.18)" }}>
+              <span style={{ fontSize: "0.62rem", color: "rgba(92,61,32,0.45)", fontWeight: 600 }}>
+                Fonte: {image.fonte}
+              </span>
             </div>
           </div>
 
-          {/* Right: Controls */}
+          {/* Right: answers panel */}
           <div
             className="flex flex-col overflow-hidden"
-            style={{ flex: "0 0 45%", background: "#BEA882" }}
+            style={{
+              flex: "0 0 32%",
+              background: "#BEA882",
+            }}
           >
-            <div className="flex-1 flex flex-col p-8 gap-6 overflow-y-auto">
-              
+            {/* Sub-header */}
+            <div
+              className="flex items-center px-6 py-3 shrink-0"
+              style={{ borderBottom: "1px solid rgba(100,70,40,0.18)" }}
+            >
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#3A9E6F", marginRight: 8 }} />
+              <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#5C3D20", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                Resposta
+              </span>
+            </div>
+
+            <div className="flex-1 flex flex-col p-6 gap-5 overflow-y-auto">
               {questionState === "AWAITING_TEXT_ANSWER" && (
                 <form onSubmit={handleTextSubmit} className="flex flex-col gap-3">
-                  <label style={{ fontSize: "0.85rem", fontWeight: 700, color: "#5C3D20", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                    Identifique a estrutura:
+                  <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "#5C3D20", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    Digite o nome da estrutura
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={textAnswer}
-                      onChange={(e) => { setTextAnswer(e.target.value); setEmptyError(false); }}
-                      placeholder="Digite sua resposta..."
+                      onChange={(e) => {
+                        setTextAnswer(e.target.value);
+                        setEmptyError(false);
+                      }}
+                      placeholder="Ex: Fêmur, Crânio..."
                       style={{
                         flex: 1,
                         fontFamily: "'Nunito', sans-serif",
                         fontWeight: 600,
-                        fontSize: "0.95rem",
-                        background: "rgba(255,255,255,0.8)",
-                        border: emptyError ? "2px solid #D9534F" : "2px solid rgba(100,70,40,0.28)",
+                        fontSize: "0.88rem",
+                        background: "rgba(180,140,100,0.25)",
+                        border: emptyError ? "1.5px solid #D9534F" : "1.5px solid rgba(100,70,40,0.28)",
                         borderRadius: 5,
                         color: "#1A2E22",
-                        padding: "12px 14px",
+                        padding: "10px 14px",
                         outline: "none",
+                      }}
+                      onFocus={(e) => {
+                        (e.target as HTMLElement).style.borderColor = "#3A9E6F";
+                        (e.target as HTMLElement).style.boxShadow = "0 0 0 3px rgba(58,158,111,0.15)";
+                      }}
+                      onBlur={(e) => {
+                        (e.target as HTMLElement).style.borderColor = emptyError ? "#D9534F" : "rgba(100,70,40,0.28)";
+                        (e.target as HTMLElement).style.boxShadow = "none";
                       }}
                     />
                     <button
@@ -253,16 +385,18 @@ export default function Game() {
                       style={{
                         fontFamily: "'Nunito', sans-serif",
                         fontWeight: 700,
-                        fontSize: "0.9rem",
+                        fontSize: "0.82rem",
                         borderRadius: 5,
                         background: "linear-gradient(135deg, #3A9E6F 0%, #2C7A54 100%)",
                         color: "#fff",
                         border: "none",
-                        padding: "0 24px",
+                        padding: "10px 18px",
                         cursor: "pointer",
+                        boxShadow: "0 3px 12px rgba(58,158,111,0.3)",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      Enviar
+                      Confirmar
                     </button>
                   </div>
                   {emptyError && (
@@ -270,63 +404,84 @@ export default function Game() {
                       É necessário fornecer uma resposta
                     </span>
                   )}
-                  {feedback === "correct" && (
-                    <div style={{ color: "#3A9E6F", fontWeight: 700, marginTop: 10 }}>Correto! +10 pontos</div>
-                  )}
                 </form>
               )}
 
-              {questionState !== "AWAITING_TEXT_ANSWER" && (
-                <div className="flex flex-col gap-3">
-                  <p style={{ fontSize: "0.85rem", fontWeight: 700, color: "#D9534F", textTransform: "uppercase" }}>
-                    {questionState === "SHOWING_ALTERNATIVES" && !feedback ? "Incorreto. Escolha uma alternativa:" : ""}
-                  </p>
-                  
-                  {alternatives.map((opt, idx) => {
+              {answeredViaTexto && (
+                <div style={{ color: "#3A9E6F", fontWeight: 700 }}>Correto! +10 pontos</div>
+              )}
+
+              {mostrarAlternativas && (
+                <div className="flex flex-col gap-2">
+                  {questionState === "SHOWING_ALTERNATIVES" && (
+                    <p style={{ fontSize: "0.72rem", fontWeight: 700, color: "#D9534F", textTransform: "uppercase" }}>
+                      Incorreto no texto. Escolha uma alternativa:
+                    </p>
+                  )}
+                  {question.options.map((opt, idx) => {
                     const isSelected = selectedOption === idx;
-                    const isCorrect = normalize(opt) === normalize(currentQuestion.correctAnswer);
-                    
-                    let bg = "rgba(255,255,255,0.6)";
-                    let border = "2px solid rgba(100,70,40,0.2)";
-                    
+                    const isCorrect = idx === question.correct;
+                    let bg = "rgba(180,140,100,0.18)";
+                    let border = "1.5px solid rgba(100,70,40,0.2)";
+                    let color = "#1A2E22";
                     if (questionState === "ANSWERED") {
                       if (isCorrect) {
-                        bg = "rgba(58,158,111,0.2)";
-                        border = "2px solid #3A9E6F";
+                        bg = "rgba(58,158,111,0.18)";
+                        border = "1.5px solid #3A9E6F";
+                        color = "#2F5C44";
                       } else if (isSelected) {
-                        bg = "rgba(217,83,79,0.2)";
-                        border = "2px solid #D9534F";
+                        bg = "rgba(180,60,40,0.15)";
+                        border = "1.5px solid rgba(180,60,40,0.5)";
+                        color = "#7A2010";
                       }
                     }
-
                     return (
                       <button
                         key={opt}
-                        onClick={() => handleAlternativeSelect(opt)}
+                        onClick={() => handleAlternativeSelect(idx)}
                         disabled={questionState === "ANSWERED"}
-                        className="text-left w-full"
+                        className="flex items-center gap-3 px-4 py-3 text-left w-full"
                         style={{
                           fontFamily: "'Nunito', sans-serif",
                           fontWeight: 700,
-                          fontSize: "0.95rem",
-                          borderRadius: 6,
+                          fontSize: "0.88rem",
+                          borderRadius: 5,
                           background: bg,
-                          border: border,
-                          padding: "14px 16px",
-                          color: "#1A2E22",
+                          border,
+                          color,
                           cursor: questionState === "ANSWERED" ? "default" : "pointer",
+                          transition: "all 0.14s ease",
                         }}
                       >
+                        <span
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 4,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            background:
+                              isSelected && questionState === "ANSWERED"
+                                ? (isCorrect ? "#3A9E6F" : "rgba(180,60,40,0.6)")
+                                : "rgba(100,70,40,0.18)",
+                            fontSize: "0.68rem",
+                            fontWeight: 800,
+                            color: isSelected && questionState === "ANSWERED" ? "#fff" : "rgba(92,61,32,0.8)",
+                          }}
+                        >
+                          {String.fromCharCode(65 + idx)}
+                        </span>
                         {opt}
                       </button>
                     );
                   })}
-                  
                   {questionState === "ANSWERED" && feedback === "correct" && (
-                    <div style={{ color: "#3A9E6F", fontWeight: 700, marginTop: 10 }}>Correto! +5 pontos</div>
+                    <div style={{ color: "#3A9E6F", fontWeight: 700, marginTop: 4 }}>Correto! +5 pontos</div>
                   )}
                   {questionState === "ANSWERED" && feedback === "wrong" && (
-                    <div style={{ color: "#D9534F", fontWeight: 700, marginTop: 10 }}>Incorreto! 0 pontos</div>
+                    <div style={{ color: "#D9534F", fontWeight: 700, marginTop: 4 }}>Incorreto! 0 pontos</div>
                   )}
                 </div>
               )}
@@ -334,13 +489,13 @@ export default function Game() {
           </div>
         </div>
       ) : (
-        /* FINISHED STATE */
+        /* ─── FINISHED STATE ─── */
         <div className="flex-1 flex flex-col items-center justify-center" style={{ background: "#C8B498" }}>
           <h2 style={{ fontSize: "2.5rem", fontWeight: 800, color: "#1A2E22", fontFamily: "'Baloo 2', sans-serif" }}>Fim de Jogo!</h2>
           <div style={{ fontSize: "1.2rem", fontWeight: 700, color: "#5C3D20", margin: "20px 0" }}>
             Pontuação Final: <span style={{ color: "#3A9E6F", fontSize: "1.8rem" }}>{score}</span>
           </div>
-          
+
           <div className="flex gap-10 my-8">
             <div className="flex flex-col items-center">
               <span style={{ fontSize: "2rem", fontWeight: 800, color: "#3A9E6F" }}>{correctCount}</span>
@@ -351,21 +506,24 @@ export default function Game() {
               <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#5C3D20", textTransform: "uppercase" }}>Incorretas</span>
             </div>
           </div>
-          
-          {/* Simple visual chart */}
+
           <div style={{ width: 300, height: 24, background: "rgba(0,0,0,0.1)", borderRadius: 12, overflow: "hidden", display: "flex", marginBottom: 40 }}>
-            {correctCount > 0 && (
-              <div style={{ flex: correctCount, background: "#3A9E6F" }} title="Corretas" />
-            )}
-            {incorrectCount > 0 && (
-              <div style={{ flex: incorrectCount, background: "#D9534F" }} title="Incorretas" />
-            )}
+            {correctCount > 0 && <div style={{ flex: correctCount, background: "#3A9E6F" }} title="Corretas" />}
+            {incorrectCount > 0 && <div style={{ flex: incorrectCount, background: "#D9534F" }} title="Incorretas" />}
           </div>
-          
+
           <button
             onClick={() => router.push("/")}
             style={{
-              padding: "12px 32px", borderRadius: 8, background: "#3A9E6F", color: "#FFF", fontWeight: 700, fontSize: "1.1rem", border: "none", cursor: "pointer", fontFamily: "'Nunito', sans-serif"
+              padding: "12px 32px",
+              borderRadius: 8,
+              background: "#3A9E6F",
+              color: "#FFF",
+              fontWeight: 700,
+              fontSize: "1.1rem",
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "'Nunito', sans-serif",
             }}
           >
             Voltar ao Menu
@@ -375,21 +533,29 @@ export default function Game() {
 
       {/* Exit Modal */}
       {showExitModal && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center"
-        }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <div style={{ background: "#C8B498", padding: 32, borderRadius: 8, boxShadow: "0 10px 30px rgba(0,0,0,0.5)", border: "1px solid rgba(100,70,40,0.2)", maxWidth: 400 }}>
             <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: "#1A2E22", marginBottom: 24, fontFamily: "'Nunito', sans-serif" }}>
               Tem certeza de que deseja voltar à tela principal? Seu progresso não será salvo.
             </h2>
             <div className="flex gap-4 justify-end">
-              <button 
+              <button
                 onClick={() => setShowExitModal(false)}
                 style={{ padding: "8px 16px", borderRadius: 6, background: "rgba(100,70,40,0.15)", color: "#1A2E22", fontWeight: 700, border: "none", cursor: "pointer" }}
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={() => router.push("/")}
                 style={{ padding: "8px 16px", borderRadius: 6, background: "#C4845A", color: "#FFF", fontWeight: 700, border: "none", cursor: "pointer" }}
               >
@@ -399,6 +565,45 @@ export default function Game() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ImageSelector({
+  images,
+  value,
+  onChange,
+}: {
+  images: AnatomyImage[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      <span style={{ fontSize: "0.55rem", color: "rgba(255,255,255,0.38)", fontWeight: 700, letterSpacing: "0.12em" }}>
+        ANIMAL
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          fontFamily: "'Baloo 2', sans-serif",
+          fontWeight: 800,
+          fontSize: "0.9rem",
+          color: "#C4845A",
+          background: "transparent",
+          border: "none",
+          outline: "none",
+          cursor: "pointer",
+          padding: 0,
+        }}
+      >
+        {images.map((img) => (
+          <option key={img.id} value={img.id} style={{ color: "#1A2E22" }}>
+            {img.especie}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
