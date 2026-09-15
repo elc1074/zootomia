@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import React, { useMemo, useState } from "react";
-import { IMAGES, type Marker } from "@/data/anatomy";
+import React, { useState } from "react";
+import { IMAGES, type AnatomyImage, type Marker } from "@/data/anatomy";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -34,8 +34,17 @@ function buildQuestions(markers: Marker[]): Question[] {
 }
 
 export default function Game() {
-  const image = IMAGES[0];
-  const questions = useMemo(() => buildQuestions(image.markers), [image]);
+  const [imageId, setImageId] = useState(IMAGES[0].id);
+  const image = IMAGES.find((img) => img.id === imageId) ?? IMAGES[0];
+
+  // O sorteio usa Math.random(), então só pode rodar no cliente:
+  // gerar durante o SSR faria o servidor e o navegador sortearem
+  // ordens diferentes e o React reclamar de hydration mismatch.
+  const [questions, setQuestions] = useState<Question[] | null>(null);
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intencional: sorteio (Math.random) só pode acontecer no cliente
+    setQuestions(buildQuestions(image.markers));
+  }, [image]);
 
   const [score, setScore] = useState(0);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -43,6 +52,27 @@ export default function Game() {
   const [showOptions, setShowOptions] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
+
+  function trocarImagem(id: string) {
+    setImageId(id);
+    setScore(0);
+    setQuestionIndex(0);
+    setTextAnswer("");
+    setShowOptions(false);
+    setSelectedOption(null);
+    setFeedback(null);
+  }
+
+  if (!questions) {
+    return (
+      <div
+        className="size-full flex items-center justify-center min-h-screen"
+        style={{ background: "#C8B498", fontFamily: "'Nunito', sans-serif", color: "#5C3D20", fontWeight: 700 }}
+      >
+        Carregando…
+      </div>
+    );
+  }
 
   const question = questions[questionIndex % questions.length];
 
@@ -82,6 +112,35 @@ export default function Game() {
       className="size-full flex flex-col overflow-hidden min-h-screen"
       style={{ background: "#C8B498", fontFamily: "'Nunito', sans-serif" }}
     >
+      <style>{`
+        .marker-dot {
+          position: absolute;
+          top: 0;
+          left: 0;
+          transform: translate(-50%, -50%);
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #E8C252;
+          box-shadow: 0 0 0 3px rgba(28,53,40,0.85), 0 1px 5px rgba(0,0,0,0.35);
+        }
+        .marker-ping {
+          position: absolute;
+          top: 0;
+          left: 0;
+          transform: translate(-50%, -50%);
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: rgba(232,194,82,0.55);
+          animation: marker-pulse 1.7s cubic-bezier(0,0,0.25,1) infinite;
+        }
+        @keyframes marker-pulse {
+          0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+          70% { transform: translate(-50%, -50%) scale(3.4); opacity: 0; }
+          100% { transform: translate(-50%, -50%) scale(3.4); opacity: 0; }
+        }
+      `}</style>
       {/* ─── Scoreboard header ─── */}
       <header
         className="flex items-center justify-between px-8 py-0 shrink-0"
@@ -118,7 +177,11 @@ export default function Game() {
           <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
           <ScoreTile label="QUESTÃO" value={`${(questionIndex % questions.length) + 1} / ${questions.length}`} color="#E8C252" />
           <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
-          <ScoreTile label="ANIMAL" value="Cachorro" color="#C4845A" />
+          {IMAGES.length > 1 ? (
+            <ImageSelector images={IMAGES} value={imageId} onChange={trocarImagem} />
+          ) : (
+            <ScoreTile label="ANIMAL" value={image.especie} color="#C4845A" />
+          )}
         </div>
 
         {/* Feedback inline */}
@@ -147,7 +210,7 @@ export default function Game() {
         <div
           className="flex flex-col overflow-hidden"
           style={{
-            flex: "0 0 55%",
+            flex: "0 0 68%",
             borderRight: "1px solid rgba(100,70,40,0.22)",
             background: "#C0A888",
           }}
@@ -160,7 +223,7 @@ export default function Game() {
             <div className="flex items-center gap-2">
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E8C252" }} />
               <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#5C3D20", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                Qual osso a seta indica?
+                Qual osso está marcado?
               </span>
             </div>
             <span style={{ fontSize: "0.68rem", color: "rgba(92,61,32,0.5)", fontWeight: 600, fontStyle: "italic" }}>
@@ -177,33 +240,27 @@ export default function Game() {
               padding: "24px",
             }}
           >
-            <div style={{ position: "relative", width: "100%", maxWidth: 460 }}>
+            <div style={{ position: "relative", width: "100%", maxWidth: 780 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={image.src}
                 alt={image.titulo}
                 style={{ display: "block", width: "100%", borderRadius: 6, background: "rgba(160,120,80,0.14)" }}
               />
-              <svg
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }}
+              <div
+                key={`${imageId}-${questionIndex}`}
+                style={{
+                  position: "absolute",
+                  left: `${question.marker.x * 100}%`,
+                  top: `${question.marker.y * 100}%`,
+                  width: 0,
+                  height: 0,
+                  pointerEvents: "none",
+                }}
               >
-                <defs>
-                  <marker id="ponta" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                    <path d="M0 0L10 5L0 10z" fill="#E8C252" />
-                  </marker>
-                </defs>
-                <line
-                  x1={`${(question.marker.x - 0.16) * 100}%`}
-                  y1={`${(question.marker.y - 0.16) * 100}%`}
-                  x2={`${question.marker.x * 100}%`}
-                  y2={`${question.marker.y * 100}%`}
-                  stroke="#E8C252"
-                  strokeWidth={2.5}
-                  markerEnd="url(#ponta)"
-                  vectorEffect="non-scaling-stroke"
-                />
-                <circle cx={`${question.marker.x * 100}%`} cy={`${question.marker.y * 100}%`} r={4} fill="#E8C252" />
-              </svg>
+                <span className="marker-ping" />
+                <span className="marker-dot" />
+              </div>
             </div>
           </div>
 
@@ -218,7 +275,7 @@ export default function Game() {
         <div
           className="flex flex-col overflow-hidden"
           style={{
-            flex: "0 0 45%",
+            flex: "0 0 32%",
             background: "#BEA882",
           }}
         >
@@ -377,6 +434,45 @@ export default function Game() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ImageSelector({
+  images,
+  value,
+  onChange,
+}: {
+  images: AnatomyImage[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      <span style={{ fontSize: "0.55rem", color: "rgba(255,255,255,0.38)", fontWeight: 700, letterSpacing: "0.12em" }}>
+        ANIMAL
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          fontFamily: "'Baloo 2', sans-serif",
+          fontWeight: 800,
+          fontSize: "0.9rem",
+          color: "#C4845A",
+          background: "transparent",
+          border: "none",
+          outline: "none",
+          cursor: "pointer",
+          padding: 0,
+        }}
+      >
+        {images.map((img) => (
+          <option key={img.id} value={img.id} style={{ color: "#1A2E22" }}>
+            {img.especie}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

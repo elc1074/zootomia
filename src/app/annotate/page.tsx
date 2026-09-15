@@ -9,7 +9,7 @@ import React, { useState } from "react";
 type Ponto = { name: string; x: number; y: number };
 
 export default function Annotate() {
-  const [src, setSrc] = useState("/images/bones/cao-esqueleto-lateral.jpg");
+  const [src, setSrc] = useState("/images/bones/cao-esqueleto-lateral.png");
   const [pontos, setPontos] = useState<Ponto[]>([]);
 
   function marcar(e: React.MouseEvent<HTMLImageElement>) {
