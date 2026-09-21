@@ -23,23 +23,57 @@ function normalize(s: string) {
     .replace(/[̀-ͯ]/g, "");
 }
 
-type Question = { marker: Marker; options: {pt: string, es: string}[]; correct: number };
+type Name = Marker["name"];
 
-function buildQuestions(markers: Marker[]): Question[] {
-  return shuffle(markers).map((marker) => {
-    const distratores = shuffle(
-      markers.filter((m) => m.name !== marker.name).map((m) => m.name),
-    ).slice(0, 3);
-    const options = shuffle([marker.name, ...distratores]);
-    return { marker, options, correct: options.findIndex(o => o.pt === marker.name.pt) };
+// Uma vista = uma imagem em que o osso está mapeado (com um ou mais marcadores dele).
+type View = { image: AnatomyImage; markers: Marker[] };
+
+// Uma questão = um osso (agrupado pelo nome em PT) + todas as imagens em que ele aparece.
+type Question = { name: Name; aceita: string[]; views: View[]; options: Name[]; correct: number };
+
+const ESPECIES = [...new Set(IMAGES.map((img) => img.especie))];
+
+function buildQuestions(images: AnatomyImage[]): Question[] {
+  const ossos = new Map<string, { name: Name; aceita: Set<string>; views: View[] }>();
+
+  for (const image of images) {
+    for (const marker of image.markers) {
+      const key = normalize(marker.name.pt);
+      let osso = ossos.get(key);
+      if (!osso) {
+        osso = { name: marker.name, aceita: new Set(), views: [] };
+        ossos.set(key, osso);
+      }
+      marker.aceita?.forEach((a) => osso.aceita.add(a));
+
+      let view = osso.views.find((v) => v.image.id === image.id);
+      if (!view) {
+        view = { image, markers: [] };
+        osso.views.push(view);
+      }
+      view.markers.push(marker);
+    }
+  }
+
+  const lista = [...ossos.values()];
+  const nomes = lista.map((o) => o.name);
+  return shuffle(lista).map((osso) => {
+    const distratores = shuffle(nomes.filter((n) => n.pt !== osso.name.pt)).slice(0, 3);
+    const options = shuffle([osso.name, ...distratores]);
+    return {
+      name: osso.name,
+      aceita: [...osso.aceita],
+      views: osso.views,
+      options,
+      correct: options.findIndex((o) => o.pt === osso.name.pt),
+    };
   });
 }
 
 export default function Game() {
   const router = useRouter();
 
-  const [imageId, setImageId] = useState(IMAGES[0].id);
-  const image = IMAGES.find((img) => img.id === imageId) ?? IMAGES[0];
+  const [especie, setEspecie] = useState(ESPECIES[0]);
 
   // O sorteio usa Math.random(), então só pode rodar no cliente:
   // gerar durante o SSR faria o servidor e o navegador sortearem
@@ -47,10 +81,11 @@ export default function Game() {
   const [questions, setQuestions] = useState<Question[] | null>(null);
   React.useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intencional: sorteio (Math.random) só pode acontecer no cliente
-    setQuestions(buildQuestions(image.markers));
-  }, [image]);
+    setQuestions(buildQuestions(IMAGES.filter((img) => img.especie === especie)));
+  }, [especie]);
 
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [viewIndex, setViewIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
@@ -65,9 +100,10 @@ export default function Game() {
   const { language } = useLanguage();
   const t = TRANSLATIONS[language].game;
 
-  function trocarImagem(id: string) {
-    setImageId(id);
+  function trocarEspecie(nova: string) {
+    setEspecie(nova);
     setQuestionIndex(0);
+    setViewIndex(0);
     setScore(0);
     setCorrectCount(0);
     setIncorrectCount(0);
@@ -93,14 +129,21 @@ export default function Game() {
   if (questions.length === 0) return null;
 
   const question = questions[questionIndex];
+  const totalViews = question.views.length;
+  const view = question.views[viewIndex] ?? question.views[0];
+
+  function irParaVista(i: number) {
+    setViewIndex(((i % totalViews) + totalViews) % totalViews);
+  }
 
   function respostaCerta(texto: string) {
-    const alvo = [question.marker.name.pt, question.marker.name.es, ...(question.marker.aceita ?? [])].map(normalize);
+    const alvo = [question.name.pt, question.name.es, ...question.aceita].map(normalize);
     return alvo.includes(normalize(texto));
   }
 
   function advanceQuestion() {
     setTimeout(() => {
+      setViewIndex(0);
       setSelectedOption(null);
       setFeedback(null);
       setTextAnswer("");
@@ -232,10 +275,10 @@ export default function Game() {
               <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
               <ScoreTile label={t.question} value={`${questionIndex + 1} / ${questions.length}`} color="#E8C252" />
               <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
-              {IMAGES.length > 1 ? (
-                <ImageSelector images={IMAGES} value={imageId} onChange={trocarImagem} />
+              {ESPECIES.length > 1 ? (
+                <SpeciesSelector label={t.animal} especies={ESPECIES} value={especie} onChange={trocarEspecie} />
               ) : (
-                <ScoreTile label={t.animal} value={image.especie} color="#C4845A" />
+                <ScoreTile label={t.animal} value={especie} color="#C4845A" />
               )}
             </div>
 
@@ -251,7 +294,7 @@ export default function Game() {
               >
                 <span style={{ fontSize: "0.9rem" }}>{feedback === "correct" ? "✓" : "✗"}</span>
                 <span style={{ fontSize: "0.78rem", fontWeight: 700, color: feedback === "correct" ? "#8DC9A0" : "#E09080" }}>
-                  {feedback === "correct" ? `Correto! +${answeredViaTexto ? 10 : 5} pts` : `Era: ${question.marker.name}`}
+                  {feedback === "correct" ? `${t.correct} +${answeredViaTexto ? 10 : 5} ${t.pts}` : `${t.was} ${question.name[language]}`}
                 </span>
               </div>
             ) : (
@@ -284,9 +327,11 @@ export default function Game() {
                   {t.identifyStructure}
                 </span>
               </div>
-              <span style={{ fontSize: "0.68rem", color: "rgba(92,61,32,0.5)", fontWeight: 600, fontStyle: "italic" }}>
-                {image.especie}
-              </span>
+              <div className="flex items-center gap-4">
+                <span style={{ fontSize: "0.68rem", color: "rgba(92,61,32,0.5)", fontWeight: 600, fontStyle: "italic" }}>
+                  {especie}
+                </span>
+              </div>
             </div>
 
             {/* Image + marker */}
@@ -301,30 +346,77 @@ export default function Game() {
               <div style={{ position: "relative", width: "100%", maxWidth: 780 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={image.src}
-                  alt={image.titulo[language as "pt" | "es"]}
+                  src={view.image.src}
+                  alt={view.image.titulo[language]}
                   style={{ display: "block", width: "100%", borderRadius: 6, background: "rgba(160,120,80,0.14)" }}
                 />
+                {view.markers.map((m, i) => (
+                  <div
+                    key={`${view.image.id}-${questionIndex}-${i}`}
+                    style={{
+                      position: "absolute",
+                      left: `${m.x * 100}%`,
+                      top: `${m.y * 100}%`,
+                      width: 0,
+                      height: 0,
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <span className="marker-ping" />
+                    <span className="marker-dot" />
+                  </div>
+                ))}
+              </div>
+              {totalViews > 1 && (
                 <div
-                  key={`${imageId}-${questionIndex}`}
+                  className="flex items-center gap-2"
+                  role="group"
+                  aria-label={t.viewGroup}
                   style={{
                     position: "absolute",
-                    left: `${question.marker.x * 100}%`,
-                    top: `${question.marker.y * 100}%`,
-                    width: 0,
-                    height: 0,
-                    pointerEvents: "none",
+                    top: 12,
+                    zIndex: 5,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    padding: "6px 10px",
+                    borderRadius: 999,
+                    background: "rgba(28,53,40,0.92)",
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.35)",
                   }}
                 >
-                  <span className="marker-ping" />
-                  <span className="marker-dot" />
+                  <button onClick={() => irParaVista(viewIndex - 1)} aria-label={t.prevView} style={navButtonStyle}>
+                    ‹
+                  </button>
+                  {question.views.map((v, i) => (
+                    <button
+                      key={v.image.id}
+                      onClick={() => irParaVista(i)}
+                      aria-label={`${t.view} ${i + 1}: ${v.image.titulo[language]}`}
+                      aria-current={i === viewIndex}
+                      title={v.image.titulo[language]}
+                      style={{
+                        ...navButtonStyle,
+                        background: i === viewIndex ? "#E8C252" : "rgba(255,255,255,0.12)",
+                        color: i === viewIndex ? "#1C3528" : "#E8E0CC",
+                      }}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  <button onClick={() => irParaVista(viewIndex + 1)} aria-label={t.nextView} style={navButtonStyle}>
+                    ›
+                  </button>
+                  <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#8DC9A0", whiteSpace: "nowrap", paddingLeft: 4 }}>
+                    {totalViews} {t.anglesAvailable}
+                  </span>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="shrink-0 px-6 py-2" style={{ borderTop: "1px solid rgba(100,70,40,0.18)" }}>
               <span style={{ fontSize: "0.62rem", color: "rgba(92,61,32,0.45)", fontWeight: 600 }}>
-                {t.source}: {image.fonte}
+                {totalViews > 1 && `${t.view} ${viewIndex + 1} ${t.of} ${totalViews} — ${view.image.titulo[language]} · `}
+                {t.source}: {view.image.fonte}
               </span>
             </div>
           </div>
@@ -573,19 +665,35 @@ export default function Game() {
   );
 }
 
-function ImageSelector({
-  images,
+const navButtonStyle: React.CSSProperties = {
+  minWidth: 34,
+  height: 34,
+  padding: "0 8px",
+  fontFamily: "'Nunito', sans-serif",
+  fontWeight: 800,
+  fontSize: "1rem",
+  borderRadius: 999,
+  border: "none",
+  background: "rgba(255,255,255,0.12)",
+  color: "#E8E0CC",
+  cursor: "pointer",
+};
+
+function SpeciesSelector({
+  label,
+  especies,
   value,
   onChange,
 }: {
-  images: AnatomyImage[];
+  label: string;
+  especies: string[];
   value: string;
-  onChange: (id: string) => void;
+  onChange: (especie: string) => void;
 }) {
   return (
     <div className="flex flex-col">
       <span style={{ fontSize: "0.55rem", color: "rgba(255,255,255,0.38)", fontWeight: 700, letterSpacing: "0.12em" }}>
-        ANIMAL
+        {label}
       </span>
       <select
         value={value}
@@ -602,9 +710,9 @@ function ImageSelector({
           padding: 0,
         }}
       >
-        {images.map((img) => (
-          <option key={img.id} value={img.id} style={{ color: "#1A2E22" }}>
-            {img.especie}
+        {especies.map((e) => (
+          <option key={e} value={e} style={{ color: "#1A2E22" }}>
+            {e}
           </option>
         ))}
       </select>

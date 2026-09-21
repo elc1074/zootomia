@@ -69,7 +69,7 @@ export const IMAGES: AnatomyImage[] = [
       { name: { pt: "Epicôndilo lateral do úmero", es: "Epicóndilo lateral del húmero" }, aceita: ["epicondilo lateral humero", "epicóndilo lateral", "epicondilo lateral del humero"], x: 0.67, y: 0.546 },
       { name: { pt: "Cabeça do rádio", es: "Cabeza del radio" }, aceita: ["cabeza del radio", "cabeca radio"], x: 0.65, y: 0.56 },
       { name: { pt: "Tróclea do rádio", es: "Tróclea del radio" }, aceita: ["troclea del radio", "troclea radio"], x: 0.606, y: 0.786 },
-      { name: { pt: "Olécrano", es: "Olécranon" }, aceita: ["olecranon", "olécrano"], x: 0.691, y: 0.516 },
+      { name: { pt: "Olécrano da ulna", es: "Olécranon del cúbito" }, aceita: ["olecranon", "olécrano", "olecrano"], x: 0.691, y: 0.516 },
       { name: { pt: "Apófise estiloide da ulna", es: "Apófisis estiloides del cúbito" }, aceita: ["apofisis estiloides del cubito", "apofise estiloide ulna"], x: 0.627, y: 0.801 },
       { name: { pt: "Osso intermédio-radial do carpo", es: "Hueso intermediorradial del carpo" }, aceita: ["hueso intermediorradial del carpo", "escafolunar", "escafolunar carpo"], x: 0.598, y: 0.809 },
       { name: { pt: "Osso carpal IV", es: "Hueso carpiano IV" }, aceita: ["hueso carpiano 4", "osso carpiano 4"], x: 0.623, y: 0.833 },
