@@ -4,6 +4,9 @@ import Link from "next/link";
 import React, { useState } from "react";
 import Image from "next/image";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+import { TRANSLATIONS } from "@/data/locales";
+
 const GALLERY_IMAGES = [
   "/images/dog_bone.svg",
   "/images/cat_bone.svg",
@@ -12,6 +15,8 @@ const GALLERY_IMAGES = [
 
 export default function Gallery() {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const { language } = useLanguage();
+  const t = TRANSLATIONS[language].gallery;
 
   function handleNext() {
     if (viewerIndex !== null) {
@@ -62,7 +67,7 @@ export default function Gallery() {
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M9.5 12L4.5 7l5-5" stroke="#8DC9A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Voltar
+          {t.back}
         </Link>
 
         <div style={{ width: 1, height: 24, background: "rgba(141,201,160,0.2)" }} />
@@ -78,7 +83,7 @@ export default function Gallery() {
               lineHeight: 1,
             }}
           >
-            Galeria
+            {t.title}
           </h2>
         </div>
       </header>

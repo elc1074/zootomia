@@ -14,6 +14,7 @@ continue the existing Zootomia project instead of creating a new project;
 preserve the existing React/Next.js architecture unless this specification explicitly requires a change;
 use TypeScript/JavaScript;
 preserve the existing visual identity when this specification does not explicitly require a visual change;
+support bilingual interfaces (Portuguese and Spanish) via a global language selector in the Main Menu;
 reuse existing components, styles, assets, and project conventions when they are compatible with this specification;
 avoid introducing functionality that is not specified;
 avoid removing existing functionality unless this specification explicitly requires its removal;
@@ -93,10 +94,15 @@ current game version;
 "Jogar" button;
 "Galeria" button;
 "Sobre" button;
-"Sair" button.
+"Sair" button;
+a language toggle button (PT/ES) in the top right corner.
 No additional explanatory or decorative text should be introduced.
 5.4 Menu interactions
-The user must be able to activate all four menu actions using the mouse.
+The user must be able to activate all menu actions using the mouse.
+Language Toggle
+When the user clicks the language toggle:
+the application language must switch between Portuguese and Spanish;
+the change must reflect immediately across the entire application interface and content.
 Jogar
 When the user clicks Jogar:
 a new game must be started;
@@ -204,7 +210,7 @@ The user may select exactly one alternative. After an alternative is selected, t
 Alternative ordering
 The order of alternatives must be randomized for each game.
 Alternative generation
-OPEN QUESTION: The source and generation rules for the three incorrect alternatives have not yet been specified.
+The three incorrect alternatives (distractors) must be generated dynamically by randomly selecting the names of other anatomical structures mapped in the same image currently being played.
 8. Game Scoring
 8.1 Initial score
 A new game starts with 0 points
@@ -311,19 +317,22 @@ an anatomical image;
 the correct anatomical answer;
 a species association;
 sufficient information to generate/display the alternative answers.
+The data is centralized in a TypeScript database (`src/data/anatomy.ts`), which exports an array of `AnatomyImage` objects.
 Conceptually:
-Question
+AnatomyImage
 ├── id
-├── image
-├── species
-├── correctAnswer
-└── alternatives / alternative source
-Supported species in the initial version:
-dog
-cat
-The exact implementation/data structure is not prescribed unless required by the existing project architecture. Further information on that topic will be provided in the next version of the specification.
+├── titulo
+├── especie
+├── src
+├── fonte
+└── markers (Array of Marker)
+    ├── name (canonical answer)
+    ├── aceita (array of synonyms/alternate spellings)
+    ├── x
+    └── y
+Text answers should be evaluated by checking both the `name` and the `aceita` list.
 15. Number and Selection of Questions
-Initially, the number of questions per game is 10, all of them based on one image. The questions are randomly selected, the same question does not appear more than once during one game, the dog and cat questions are mixed.
+The game displays questions for all mapped anatomical structures of the currently selected image, randomly ordered. The interface must provide an Image Selector to allow the user to switch the anatomical model. Changing the image resets the game progress and score.
 16. Feature 2 — Acceptance Criteria
 AC-2.1 Initial question
 GIVEN the player starts a new game
@@ -466,12 +475,16 @@ GIVEN the player is on the About screen
 WHEN the player activates the return-to-menu control
 THEN the Main Menu must be displayed.
 21. Assets
-The implementation must reuse existing project assets whenever they correspond to the requirements in this specification.
-The following assets are known to be required:
+The implementation must use the final image assets provided in the project:
 Main Menu dog image;
-anatomical model images for the Game;
-anatomical model images for the Gallery.
-The exact asset filenames and locations must be determined from the existing project. New placeholder assets must not replace existing assets unnecessarily. If a required asset does not exist, this must be reported as an implementation blocker rather than silently replaced with an unrelated asset.
+anatomical model images for the Game and Gallery (located in `public/images/bones/`);
+The exact asset filenames and locations are defined in `src/data/anatomy.ts`.
+
+21.5 FEATURE 5 — Annotate Tool
+21.5.1 Purpose
+The application contains an internal development/teacher tool available at `/annotate`. This tool allows users to load anatomical images and visually map the (x, y) coordinates for new structures.
+21.5.2 Usage
+This feature is intended for internal data generation and does not need to be accessible from the Main Menu.
 22. UI and Visual Requirements
 22.1 Existing design
 The existing visual design is the baseline for the application.
@@ -560,15 +573,9 @@ correct/incorrect counts work;
 the final result is displayed;
 returning to the menu behaves differently depending on whether the game is active or finished.
 29. Open Questions / Implementation Blockers
-The following questions must be resolved before the complete implementation can be considered fully specified.
-BLOCKER 1 — Alternative generation
-Where do the three incorrect alternatives come from?
-Possible source:
-predefined alternatives for each question;
-automatically generated from other questions;
-another dataset.
+None. All prior blockers (Alternative generation rules and Missing image assets) have been successfully resolved during implementation.
+
 30. Pre-Implementation Requirement
-Do not begin implementation of the complete feature set until the implementation blockers in Section 29 have been resolved.
 Before implementation begins, the implementer must confirm understanding of:
 the global project requirements;
 the navigation model;

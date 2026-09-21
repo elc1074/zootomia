@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { TRANSLATIONS } from "@/data/locales";
 import { useRouter } from "next/navigation";
 import { IMAGES, type AnatomyImage, type Marker } from "@/data/anatomy";
 
@@ -21,7 +23,7 @@ function normalize(s: string) {
     .replace(/[̀-ͯ]/g, "");
 }
 
-type Question = { marker: Marker; options: string[]; correct: number };
+type Question = { marker: Marker; options: {pt: string, es: string}[]; correct: number };
 
 function buildQuestions(markers: Marker[]): Question[] {
   return shuffle(markers).map((marker) => {
@@ -29,7 +31,7 @@ function buildQuestions(markers: Marker[]): Question[] {
       markers.filter((m) => m.name !== marker.name).map((m) => m.name),
     ).slice(0, 3);
     const options = shuffle([marker.name, ...distratores]);
-    return { marker, options, correct: options.indexOf(marker.name) };
+    return { marker, options, correct: options.findIndex(o => o.pt === marker.name.pt) };
   });
 }
 
@@ -60,6 +62,8 @@ export default function Game() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [showExitModal, setShowExitModal] = useState(false);
+  const { language } = useLanguage();
+  const t = TRANSLATIONS[language].game;
 
   function trocarImagem(id: string) {
     setImageId(id);
@@ -91,7 +95,7 @@ export default function Game() {
   const question = questions[questionIndex];
 
   function respostaCerta(texto: string) {
-    const alvo = [question.marker.name, ...(question.marker.aceita ?? [])].map(normalize);
+    const alvo = [question.marker.name.pt, question.marker.name.es, ...(question.marker.aceita ?? [])].map(normalize);
     return alvo.includes(normalize(texto));
   }
 
@@ -224,14 +228,14 @@ export default function Game() {
         {gameState === "IN_PROGRESS" && (
           <>
             <div className="flex items-center gap-1">
-              <ScoreTile label="PONTUAÇÃO" value={score} color="#8DC9A0" large />
+              <ScoreTile label={t.score} value={score} color="#8DC9A0" large />
               <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
-              <ScoreTile label="QUESTÃO" value={`${questionIndex + 1} / ${questions.length}`} color="#E8C252" />
+              <ScoreTile label={t.question} value={`${questionIndex + 1} / ${questions.length}`} color="#E8C252" />
               <div style={{ width: 1, height: 32, background: "rgba(141,201,160,0.15)", margin: "0 8px" }} />
               {IMAGES.length > 1 ? (
                 <ImageSelector images={IMAGES} value={imageId} onChange={trocarImagem} />
               ) : (
-                <ScoreTile label="ANIMAL" value={image.especie} color="#C4845A" />
+                <ScoreTile label={t.animal} value={image.especie} color="#C4845A" />
               )}
             </div>
 
@@ -277,7 +281,7 @@ export default function Game() {
               <div className="flex items-center gap-2">
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E8C252" }} />
                 <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#5C3D20", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                  Qual osso está marcado?
+                  {t.identifyStructure}
                 </span>
               </div>
               <span style={{ fontSize: "0.68rem", color: "rgba(92,61,32,0.5)", fontWeight: 600, fontStyle: "italic" }}>
@@ -298,7 +302,7 @@ export default function Game() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={image.src}
-                  alt={image.titulo}
+                  alt={image.titulo[language as "pt" | "es"]}
                   style={{ display: "block", width: "100%", borderRadius: 6, background: "rgba(160,120,80,0.14)" }}
                 />
                 <div
@@ -320,7 +324,7 @@ export default function Game() {
 
             <div className="shrink-0 px-6 py-2" style={{ borderTop: "1px solid rgba(100,70,40,0.18)" }}>
               <span style={{ fontSize: "0.62rem", color: "rgba(92,61,32,0.45)", fontWeight: 600 }}>
-                Fonte: {image.fonte}
+                {t.source}: {image.fonte}
               </span>
             </div>
           </div>
@@ -348,7 +352,7 @@ export default function Game() {
               {questionState === "AWAITING_TEXT_ANSWER" && (
                 <form onSubmit={handleTextSubmit} className="flex flex-col gap-3">
                   <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "#5C3D20", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                    Digite o nome da estrutura
+                    {t.typeAnswer}
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -358,7 +362,7 @@ export default function Game() {
                         setTextAnswer(e.target.value);
                         setEmptyError(false);
                       }}
-                      placeholder="Ex: Fêmur, Crânio..."
+                      placeholder={t.typeAnswerPlaceholder}
                       style={{
                         flex: 1,
                         fontFamily: "'Nunito', sans-serif",
@@ -401,21 +405,21 @@ export default function Game() {
                   </div>
                   {emptyError && (
                     <span style={{ color: "#D9534F", fontSize: "0.8rem", fontWeight: 700 }}>
-                      É necessário fornecer uma resposta
+                      {t.emptyAnswer}
                     </span>
                   )}
                 </form>
               )}
 
               {answeredViaTexto && (
-                <div style={{ color: "#3A9E6F", fontWeight: 700 }}>Correto! +10 pontos</div>
+                <div style={{ color: "#3A9E6F", fontWeight: 700 }}>{t.pts10}</div>
               )}
 
               {mostrarAlternativas && (
                 <div className="flex flex-col gap-2">
                   {questionState === "SHOWING_ALTERNATIVES" && (
                     <p style={{ fontSize: "0.72rem", fontWeight: 700, color: "#D9534F", textTransform: "uppercase" }}>
-                      Incorreto no texto. Escolha uma alternativa:
+                      {t.wrongTextChooseAlt}
                     </p>
                   )}
                   {question.options.map((opt, idx) => {
@@ -437,7 +441,7 @@ export default function Game() {
                     }
                     return (
                       <button
-                        key={opt}
+                        key={opt[language]}
                         onClick={() => handleAlternativeSelect(idx)}
                         disabled={questionState === "ANSWERED"}
                         className="flex items-center gap-3 px-4 py-3 text-left w-full"
@@ -473,15 +477,15 @@ export default function Game() {
                         >
                           {String.fromCharCode(65 + idx)}
                         </span>
-                        {opt}
+                        {opt[language as "pt" | "es"]}
                       </button>
                     );
                   })}
                   {questionState === "ANSWERED" && feedback === "correct" && (
-                    <div style={{ color: "#3A9E6F", fontWeight: 700, marginTop: 4 }}>Correto! +5 pontos</div>
+                    <div style={{ color: "#3A9E6F", fontWeight: 700, marginTop: 4 }}>{t.pts5}</div>
                   )}
                   {questionState === "ANSWERED" && feedback === "wrong" && (
-                    <div style={{ color: "#D9534F", fontWeight: 700, marginTop: 4 }}>Incorreto! 0 pontos</div>
+                    <div style={{ color: "#D9534F", fontWeight: 700, marginTop: 4 }}>{t.pts0}</div>
                   )}
                 </div>
               )}
@@ -491,25 +495,25 @@ export default function Game() {
       ) : (
         /* ─── FINISHED STATE ─── */
         <div className="flex-1 flex flex-col items-center justify-center" style={{ background: "#C8B498" }}>
-          <h2 style={{ fontSize: "2.5rem", fontWeight: 800, color: "#1A2E22", fontFamily: "'Baloo 2', sans-serif" }}>Fim de Jogo!</h2>
+          <h2 style={{ fontSize: "2.5rem", fontWeight: 800, color: "#1A2E22", fontFamily: "'Baloo 2', sans-serif" }}>{t.gameOver}</h2>
           <div style={{ fontSize: "1.2rem", fontWeight: 700, color: "#5C3D20", margin: "20px 0" }}>
-            Pontuação Final: <span style={{ color: "#3A9E6F", fontSize: "1.8rem" }}>{score}</span>
+            {t.finalScore} <span style={{ color: "#3A9E6F", fontSize: "1.8rem" }}>{score}</span>
           </div>
 
           <div className="flex gap-10 my-8">
             <div className="flex flex-col items-center">
               <span style={{ fontSize: "2rem", fontWeight: 800, color: "#3A9E6F" }}>{correctCount}</span>
-              <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#5C3D20", textTransform: "uppercase" }}>Corretas</span>
+              <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#5C3D20", textTransform: "uppercase" }}>{t.correctPlural}</span>
             </div>
             <div className="flex flex-col items-center">
               <span style={{ fontSize: "2rem", fontWeight: 800, color: "#D9534F" }}>{incorrectCount}</span>
-              <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#5C3D20", textTransform: "uppercase" }}>Incorretas</span>
+              <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#5C3D20", textTransform: "uppercase" }}>{t.incorrectPlural}</span>
             </div>
           </div>
 
           <div style={{ width: 300, height: 24, background: "rgba(0,0,0,0.1)", borderRadius: 12, overflow: "hidden", display: "flex", marginBottom: 40 }}>
-            {correctCount > 0 && <div style={{ flex: correctCount, background: "#3A9E6F" }} title="Corretas" />}
-            {incorrectCount > 0 && <div style={{ flex: incorrectCount, background: "#D9534F" }} title="Incorretas" />}
+            {correctCount > 0 && <div style={{ flex: correctCount, background: "#3A9E6F" }} title={t.correctPlural} />}
+            {incorrectCount > 0 && <div style={{ flex: incorrectCount, background: "#D9534F" }} title={t.incorrectPlural} />}
           </div>
 
           <button
@@ -546,7 +550,7 @@ export default function Game() {
         >
           <div style={{ background: "#C8B498", padding: 32, borderRadius: 8, boxShadow: "0 10px 30px rgba(0,0,0,0.5)", border: "1px solid rgba(100,70,40,0.2)", maxWidth: 400 }}>
             <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: "#1A2E22", marginBottom: 24, fontFamily: "'Nunito', sans-serif" }}>
-              Tem certeza de que deseja voltar à tela principal? Seu progresso não será salvo.
+              {t.exitConfirm}
             </h2>
             <div className="flex gap-4 justify-end">
               <button

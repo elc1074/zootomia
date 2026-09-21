@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import React from "react";
+import React from "react";import { useLanguage } from "@/contexts/LanguageContext";
+import { TRANSLATIONS } from "@/data/locales";
 
 export default function About() {
+  const { language } = useLanguage();
+  const t = TRANSLATIONS[language].about;
+
   return (
     <div
       className="size-full flex flex-col overflow-hidden min-h-screen items-center justify-center"
@@ -42,7 +46,7 @@ export default function About() {
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M9.5 12L4.5 7l5-5" stroke="#8DC9A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Voltar
+          {t.back}
         </Link>
         <div style={{ width: 1, height: 24, background: "rgba(141,201,160,0.2)" }} />
         <div>
@@ -56,14 +60,14 @@ export default function About() {
               lineHeight: 1,
             }}
           >
-            Sobre
+            {t.title}
           </h2>
         </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center mt-20">
         <p style={{ fontSize: "1.2rem", fontWeight: 700, color: "#5C3D20" }}>
-          A ser definido
+          {t.content}
         </p>
       </main>
     </div>

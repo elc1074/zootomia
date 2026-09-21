@@ -4,15 +4,20 @@ import Link from "next/link";
 import React from "react";
 import Image from "next/image"
 
+import { useLanguage } from "@/contexts/LanguageContext";
+import { TRANSLATIONS } from "@/data/locales";
+
 const NAV_ITEMS = [
-  { label: "Jogar", icon: <PlayIcon />, href: "/game", primary: true },
-  { label: "Galeria", icon: <GalleryIcon />, href: "/gallery", primary: false },
-  { label: "Sobre", icon: <InfoIcon />, href: "/about", primary: false },
-  { label: "Sair", icon: <ExitIcon />, href: "#", primary: false },
-];
+  { labelKey: "play", icon: <PlayIcon />, href: "/game", primary: true },
+  { labelKey: "gallery", icon: <GalleryIcon />, href: "/gallery", primary: false },
+  { labelKey: "about", icon: <InfoIcon />, href: "/about", primary: false },
+  { labelKey: "exit", icon: <ExitIcon />, href: "#", primary: false },
+] as const;
 
 export default function Home() {
   const [showExitModal, setShowExitModal] = React.useState(false);
+  const { language, setLanguage } = useLanguage();
+  const t = TRANSLATIONS[language].menu;
 
   return (
     <div
@@ -64,7 +69,7 @@ export default function Home() {
             </h1>
           </div>
           <p style={{ fontSize: "0.68rem", color: "rgba(141,201,160,0.55)", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
-            Anatomia Veterinária
+            {t.subtitle}
           </p>
         </div>
 
@@ -74,10 +79,11 @@ export default function Home() {
         {/* Nav */}
         <nav className="flex flex-col gap-2 flex-1">
           {NAV_ITEMS.map((item) => {
-            const isExit = item.label === "Sair";
+            const isExit = item.labelKey === "exit";
+            const label = t[item.labelKey];
             return (
             <Link
-              key={item.label}
+              key={item.labelKey}
               href={isExit ? "#" : item.href}
               onClick={(e) => {
                 if (isExit) {
@@ -114,7 +120,7 @@ export default function Home() {
               }}
             >
               <span className="shrink-0" style={{ opacity: 0.85 }}>{item.icon}</span>
-              {item.label}
+              {label}
             </Link>
             );
           })}
@@ -123,7 +129,7 @@ export default function Home() {
         {/* Footer */}
         <div style={{ height: 1, background: "rgba(141,201,160,0.12)", marginBottom: 20 }} />
         <p style={{ fontSize: "0.62rem", color: "rgba(141,201,160,0.3)", letterSpacing: "0.08em" }}>
-          Zootomia v1.0 · Educação Veterinária
+          {t.footer}
         </p>
       </aside>
 
@@ -140,12 +146,33 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#3A9E6F" }} />
             <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#5C3D20", letterSpacing: "0.14em", textTransform: "uppercase" }}>
-              Modelo em Destaque
+              {t.featuredModel}
             </span>
           </div>
-          <span style={{ fontSize: "0.7rem", color: "rgba(92,61,32,0.55)", fontWeight: 600 }}>
-            Canis lupus familiaris
-          </span>
+          <div className="flex items-center gap-4">
+            <span style={{ fontSize: "0.7rem", color: "rgba(92,61,32,0.55)", fontWeight: 600 }}>
+              Canis lupus familiaris
+            </span>
+            {/* Language Toggle */}
+            <div className="flex items-center gap-1" style={{ background: "rgba(100,70,40,0.1)", borderRadius: 16, padding: 4 }}>
+              <button 
+                onClick={() => setLanguage("pt")}
+                style={{ 
+                  background: language === "pt" ? "#3A9E6F" : "transparent",
+                  color: language === "pt" ? "#FFF" : "rgba(92,61,32,0.6)",
+                  border: "none", borderRadius: 12, padding: "2px 8px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer"
+                }}
+              >PT</button>
+              <button 
+                onClick={() => setLanguage("es")}
+                style={{ 
+                  background: language === "es" ? "#3A9E6F" : "transparent",
+                  color: language === "es" ? "#FFF" : "rgba(92,61,32,0.6)",
+                  border: "none", borderRadius: 12, padding: "2px 8px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer"
+                }}
+              >ES</button>
+            </div>
+          </div>
         </div>
 
         {/* Image placeholder */}
@@ -176,11 +203,11 @@ export default function Home() {
           style={{ borderTop: "1px solid rgba(100,70,40,0.18)" }}
         >
           <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "rgba(92,61,32,0.45)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-            Explore · Aprenda · Evolua
+            {t.exploreText}
           </span>
           <div style={{ flex: 1, height: 1, background: "rgba(100,70,40,0.12)" }} />
           <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "rgba(92,61,32,0.35)" }}>
-            Selecione uma opção no menu lateral
+            {t.selectOption}
           </span>
         </div>
       </main>
@@ -191,14 +218,14 @@ export default function Home() {
         }}>
           <div style={{ background: "#C8B498", padding: 32, borderRadius: 8, boxShadow: "0 10px 30px rgba(0,0,0,0.5)", border: "1px solid rgba(100,70,40,0.2)" }}>
             <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: "#1A2E22", marginBottom: 24, fontFamily: "'Nunito', sans-serif" }}>
-              Tem certeza de que deseja sair?
+              {t.exitConfirm}
             </h2>
             <div className="flex gap-4 justify-end">
               <button 
                 onClick={() => setShowExitModal(false)}
                 style={{ padding: "8px 16px", borderRadius: 6, background: "rgba(100,70,40,0.15)", color: "#1A2E22", fontWeight: 700, border: "none", cursor: "pointer" }}
               >
-                Cancelar
+                {t.cancel}
               </button>
               <button 
                 onClick={() => {
@@ -212,7 +239,7 @@ export default function Home() {
                 }}
                 style={{ padding: "8px 16px", borderRadius: 6, background: "#C4845A", color: "#FFF", fontWeight: 700, border: "none", cursor: "pointer" }}
               >
-                Confirmar
+                {t.confirm}
               </button>
             </div>
           </div>
