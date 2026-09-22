@@ -7,11 +7,9 @@ import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { TRANSLATIONS } from "@/data/locales";
 
-const GALLERY_IMAGES = [
-  "/images/dog_bone.svg",
-  "/images/cat_bone.svg",
-  "/images/dogsmenu.jpg"
-];
+import { IMAGES } from "@/data/anatomy";
+
+const GALLERY_IMAGES = IMAGES.map(img => img.src);
 
 export default function Gallery() {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);

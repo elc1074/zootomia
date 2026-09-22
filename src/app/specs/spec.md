@@ -332,7 +332,8 @@ AnatomyImage
     └── y
 Text answers should be evaluated by checking both the `name` and the `aceita` list.
 15. Number and Selection of Questions
-The game displays questions for all mapped anatomical structures of the currently selected image, randomly ordered. The interface must provide an Image Selector to allow the user to switch the anatomical model. Changing the image resets the game progress and score.
+The game groups questions by species rather than a single image. The interface must provide a Species Selector allowing the user to select an animal model (e.g. Canis lupus familiaris). The game displays questions for all mapped anatomical structures belonging to the selected species, randomly ordered. Changing the species resets the game progress and score. 
+Multi-view support: If the same anatomical structure is mapped across multiple images of the selected species (e.g., dorsal view and lateral view), the game must provide UI controls allowing the player to toggle between the different available viewing angles for that structure to aid identification.
 16. Feature 2 — Acceptance Criteria
 AC-2.1 Initial question
 GIVEN the player starts a new game
@@ -398,7 +399,7 @@ THEN the Main Menu must be displayed without a confirmation modal.
 17.1 Purpose
 The Gallery allows the player to study the anatomical models outside of the quiz. The Gallery must display anatomical model images in a grid.
 17.2 Gallery grid
-The images must be displayed as thumbnails. The intended layout is 3 images per row. Initially there will be only one image but the system is expected to have at least 9. The gallery should automatically display all available gallery assets. The preferred implementation should support additional images being added without requiring changes to the grid logic.
+The images must be displayed as thumbnails. The intended layout is 3 images per row. The gallery must automatically display all available playable anatomical images directly from the central database (`src/data/anatomy.ts`), rather than relying on hardcoded static placeholders. The implementation must support additional images being added to the database without requiring changes to the grid logic.
 17.3 Gallery title
 The screen must display the title: Galeria. No unnecessary explanatory text should be added.
 17.4 Image selection

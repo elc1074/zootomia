@@ -343,12 +343,12 @@ export default function Game() {
                 padding: "24px",
               }}
             >
-              <div style={{ position: "relative", width: "100%", maxWidth: 780 }}>
+              <div style={{ position: "relative", display: "inline-block", maxWidth: "100%", maxHeight: "100%" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={view.image.src}
                   alt={view.image.titulo[language]}
-                  style={{ display: "block", width: "100%", borderRadius: 6, background: "rgba(160,120,80,0.14)" }}
+                  style={{ display: "block", maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto", borderRadius: 6, background: "rgba(160,120,80,0.14)" }}
                 />
                 {view.markers.map((m, i) => (
                   <div
