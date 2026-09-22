@@ -33,3 +33,47 @@ O projeto é desenvolvido pelos seguintes estudantes da Universidade Federal de 
 *   Gustavo Pott
 *   Luiza Manoelle dos Santos
 *   Leonardo Dallanora
+
+## Desenvolvimento
+
+### Instalar as dependências
+
+Após clonar o projeto:
+
+```bash
+npm install
+```
+
+### Executar a aplicação web
+
+```bash
+npm run dev
+```
+
+A aplicação ficará disponível em:
+
+```text
+http://localhost:3000
+```
+
+### Executar a aplicação Electron
+
+Primeiro, gere a versão estática do Next.js:
+
+```bash
+npm run build
+```
+
+Depois execute o Electron:
+
+```bash
+npm run electron
+```
+
+No Linux, caso ocorram problemas relacionados ao Wayland/Vulkan, execute:
+
+```bash
+npx electron --disable-gpu --ozone-platform=x11 electron/main.js
+```
+
+---
