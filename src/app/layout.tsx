@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { SessionProvider } from "@/contexts/SessionContext";
 
 export const metadata: Metadata = {
   title: "Zootomia",
@@ -26,9 +27,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <LanguageProvider>
-          {children}
-        </LanguageProvider>
+        <SessionProvider>
+          <LanguageProvider>
+            {children}
+          </LanguageProvider>
+        </SessionProvider>
       </body>
     </html>
   );

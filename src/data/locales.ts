@@ -17,6 +17,8 @@ export const TRANSLATIONS = {
     game: {
       menuBtn: "Menu",
       score: "PONTUAÇÃO",
+      point: "PONTO",
+      firstTry: "De primeira!",
       question: "QUESTÃO",
       remaining: "RESTANTES",
       animal: "ANIMAL",
@@ -85,6 +87,8 @@ export const TRANSLATIONS = {
     game: {
       menuBtn: "Menú",
       score: "PUNTUACIÓN",
+      point: "PUNTO",
+      firstTry: "¡A la primera!",
       question: "PREGUNTA",
       remaining: "RESTANTES",
       animal: "ANIMAL",
