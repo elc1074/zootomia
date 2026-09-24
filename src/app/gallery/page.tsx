@@ -13,6 +13,7 @@ const GALLERY_IMAGES = IMAGES.map(img => img.src);
 
 export default function Gallery() {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [showNames, setShowNames] = useState(false);
   const { language } = useLanguage();
   const t = TRANSLATIONS[language].gallery;
 
@@ -131,12 +132,23 @@ export default function Gallery() {
           alignItems: "center",
           justifyContent: "center"
         }}>
-          <button 
-            onClick={() => setViewerIndex(null)}
-            style={{ position: "absolute", top: 20, right: 30, background: "none", border: "none", color: "#FFF", fontSize: "2rem", cursor: "pointer", zIndex: 110 }}
-          >
-            &times;
-          </button>
+          <div style={{ position: "absolute", top: 20, right: 30, zIndex: 110, display: "flex", gap: 16, alignItems: "center" }}>
+            <button 
+              onClick={() => setShowNames(!showNames)}
+              style={{ background: showNames ? "#8DC9A0" : "rgba(255,255,255,0.1)", border: "none", color: showNames ? "#1C3528" : "#FFF", fontSize: "0.9rem", fontWeight: 700, padding: "8px 16px", borderRadius: 999, cursor: "pointer" }}
+            >
+              {showNames ? "Esconder Nomes" : "Mostrar Nomes"}
+            </button>
+            <button 
+              onClick={() => {
+                setViewerIndex(null);
+                setShowNames(false);
+              }}
+              style={{ background: "none", border: "none", color: "#FFF", fontSize: "2rem", cursor: "pointer", lineHeight: 1 }}
+            >
+              &times;
+            </button>
+          </div>
           
           <button 
             onClick={handlePrev}
@@ -145,13 +157,55 @@ export default function Gallery() {
             &#8249;
           </button>
           
-          <div style={{ position: "relative", width: "80%", height: "80%" }}>
-            <Image 
-              src={GALLERY_IMAGES[viewerIndex]}
+          <div style={{ position: "relative", display: "inline-block", maxWidth: "90vw", maxHeight: "85vh" }}>
+            <img 
+              src={IMAGES[viewerIndex].src}
               alt="Imagem Ampliada"
-              fill
-              style={{ objectFit: "contain" }}
+              style={{ display: "block", maxWidth: "100%", maxHeight: "85vh", width: "auto", height: "auto" }}
             />
+            {/* Markers Overlay */}
+            {IMAGES[viewerIndex].markers.map((marker, i) => (
+              <div
+                key={i}
+                className="group"
+                style={{
+                  position: "absolute",
+                  left: `${marker.x * 100}%`,
+                  top: `${marker.y * 100}%`,
+                  width: 14,
+                  height: 14,
+                  transform: "translate(-50%, -50%)",
+                  background: "#E8C252",
+                  border: "2px solid #1C3528",
+                  borderRadius: "50%",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                  zIndex: 20
+                }}
+              >
+                {/* Tooltip on hover or permanently visible if showNames is true */}
+                <div 
+                  className={showNames ? "" : "hidden group-hover:block"}
+                  style={{
+                    position: "absolute",
+                    left: 20,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "rgba(28, 53, 40, 0.85)",
+                    color: "#FFF",
+                    padding: "4px 8px",
+                    borderRadius: 4,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: "'Nunito', sans-serif",
+                    whiteSpace: "nowrap",
+                    pointerEvents: "none"
+                  }}
+                >
+                  {language === "pt" ? marker.name.pt : marker.name.es}
+                </div>
+              </div>
+            ))}
           </div>
           
           <button 
