@@ -157,11 +157,18 @@ export default function Gallery() {
             &#8249;
           </button>
           
-          <div style={{ position: "relative", display: "inline-block", maxWidth: "90vw", maxHeight: "85vh" }}>
+          {/* A caixa tem exatamente a proporção da imagem, para os marcadores (em %) caírem no lugar certo */}
+          <div
+            style={{
+              position: "relative",
+              width: `min(90vw, calc(85vh * ${IMAGES[viewerIndex].width / IMAGES[viewerIndex].height}))`,
+              aspectRatio: `${IMAGES[viewerIndex].width} / ${IMAGES[viewerIndex].height}`,
+            }}
+          >
             <img 
               src={IMAGES[viewerIndex].src}
               alt="Imagem Ampliada"
-              style={{ display: "block", maxWidth: "100%", maxHeight: "85vh", width: "auto", height: "auto" }}
+              style={{ display: "block", width: "100%", height: "100%" }}
             />
             {/* Markers Overlay */}
             {IMAGES[viewerIndex].markers.map((marker, i) => (

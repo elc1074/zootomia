@@ -402,14 +402,23 @@ export default function Game() {
                 minHeight: 0,
                 background: "radial-gradient(ellipse at 50% 55%, rgba(141,201,160,0.08) 0%, transparent 65%)",
                 padding: "24px",
+                containerType: "size",
               }}
             >
-              <div style={{ position: "relative", width: "100%", maxWidth: 780 }}>
+              {/* Cabe na largura E na altura disponíveis mantendo a proporção da imagem,
+                  para os marcadores (em %) ficarem alinhados em qualquer tela/zoom */}
+              <div
+                style={{
+                  position: "relative",
+                  width: `min(100cqw, 780px, calc(100cqh * ${view.image.width / view.image.height}))`,
+                  aspectRatio: `${view.image.width} / ${view.image.height}`,
+                }}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={view.image.src}
                   alt={view.image.titulo[language]}
-                  style={{ display: "block", width: "100%", borderRadius: 6, background: "rgba(160,120,80,0.14)" }}
+                  style={{ display: "block", width: "100%", height: "100%", borderRadius: 6, background: "rgba(160,120,80,0.14)" }}
                 />
                 {view.markers.map((m, i) => (
                   <div

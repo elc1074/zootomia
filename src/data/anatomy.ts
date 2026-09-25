@@ -14,6 +14,8 @@ export type AnatomyImage = {
   titulo: { pt: string; es: string }; // aparece no cabeçalho do jogo
   especie: string; 
   src: string; // caminho dentro de /public
+  width: number; // dimensões reais do arquivo, em px — usadas para manter a proporção
+  height: number; // da imagem e alinhar os marcadores em qualquer tamanho de tela/zoom
   fonte: string; // legenda / atlas de origem, para atribuição
   markers: Marker[];
 };
@@ -24,6 +26,8 @@ export const IMAGES: AnatomyImage[] = [
     titulo: { pt: "Esqueleto do cão — vista lateral (relevos gerais)", es: "Esqueleto del perro — vista lateral (relieves generales)" },
     especie: "Canis lupus familiaris",
     src: "/images/bones/cao-esqueleto-geral-lateral.jpg",
+    width: 1893,
+    height: 1200,
     fonte: "Atlas de Osteología de los Mamíferos Domésticos — Figura 1.j",
     markers: [
       { name: { pt: "Vértebras cervicais", es: "Vértebras cervicales" }, aceita: ["vertebras cervicais", "vertebras cervicales", "cervicais"], x: 0.281, y: 0.167 },
@@ -56,6 +60,8 @@ export const IMAGES: AnatomyImage[] = [
     titulo: { pt: "Membro torácico — relevos ósseos do úmero, rádio, ulna e carpo", es: "Miembro torácico — relieves óseos del húmero, radio, cúbito y carpo" },
     especie: "Canis lupus familiaris",
     src: "/images/bones/cao-membro-toracico-detalhe.jpg",
+    width: 1319,
+    height: 1200,
     fonte: "Atlas de Osteología de los Mamíferos Domésticos — Figura 1.k",
     markers: [
       { name: { pt: "Ala do atlas", es: "Ala del atlas" }, aceita: ["ala del atlas"], x: 0.338, y: 0.153 },
@@ -92,6 +98,8 @@ export const IMAGES: AnatomyImage[] = [
     titulo: { pt: "Pelve e membro pélvico — relevos ósseos do fêmur, tíbia e tarso", es: "Pelvis y miembro pélvico — relieves óseos del fémur, tibia y tarso" },
     especie: "Canis lupus familiaris",
     src: "/images/bones/cao-pelve-membro-pelvico-detalhe.jpg",
+    width: 1164,
+    height: 1200,
     fonte: "Atlas de Osteología de los Mamíferos Domésticos — Figura 1.l",
     markers: [
       { name: { pt: "Crista ilíaca", es: "Cresta ilíaca" }, aceita: ["cresta iliaca"], x: 0.369, y: 0.074 },
@@ -134,6 +142,8 @@ export const IMAGES: AnatomyImage[] = [
     titulo: { pt: "Coluna vertebral e pelve — vista dorsal", es: "Columna vertebral y pelvis — vista dorsal" },
     especie: "Canis lupus familiaris",
     src: "/images/bones/cao-coluna-vertebral-dorsal.jpg",
+    width: 1800,
+    height: 648,
     fonte: "Atlas de Osteología de los Mamíferos Domésticos — Figura 1.m",
     markers: [
       { name: { pt: "Ala do atlas", es: "Ala del atlas" }, aceita: ["ala del atlas"], x: 0.19, y: 0.563 },
