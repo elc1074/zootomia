@@ -216,7 +216,7 @@ export default function Gallery() {
               </button>
             </div>
           </div>
-
+          
           {/* Viewer Main Area: Image + Optional Sidebar */}
           <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
             {/* Left/Center: Image Canvas */}

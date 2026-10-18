@@ -81,60 +81,79 @@ npx electron --disable-gpu --ozone-platform=x11 electron/main.js
 ---
 # Build para Linux
 
-Para gerar a versão Linux da aplicação, execute:
+A versão Linux da aplicação é distribuída no formato **AppImage**. O AppImage permite distribuir a aplicação como um único arquivo, sem exigir uma instalação tradicional no sistema.
 
-```bash
-npm run build
-npx electron-builder --linux
-```
+## Gerar o AppImage
 
-Os arquivos gerados serão disponibilizados na pasta:
-
-```text
-dist/
-```
-
-Para gerar especificamente um AppImage:
+Na raiz do projeto, execute:
 
 ```bash
 npm run build
 npx electron-builder --linux AppImage
 ```
 
-## Execução no Linux
+O arquivo será gerado na pasta:
 
-Em alguns ambientes Linux, especialmente utilizando Wayland/Vulkan, o Electron pode apresentar problemas relacionados à GPU ou ao backend gráfico.
+```text
+dist/
+```
+O resultado será semelhante a:
 
-Para executar a aplicação Electron com uma configuração compatível nesses casos, utilize:
+```text
+dist/Zootomia-0.1.0.AppImage
+```
+
+O número da versão pode variar de acordo com a versão definida no `package.json`.
+
+## Executar o AppImage
+
+Depois de gerar o arquivo, é necessário conceder permissão de execução:
+
+```bash
+chmod +x dist/Zootomia-0.1.0.AppImage
+```
+
+Depois, execute:
+
+```bash
+./dist/Zootomia-0.1.0.AppImage
+```
+
+O AppImage pode ser distribuído diretamente aos usuários. Não é necessário instalar o aplicativo utilizando um gerenciador de pacotes.
+
+## Problemas gráficos no Linux durante o desenvolvimento
+
+Em alguns ambientes Linux, especialmente quando o sistema utiliza Wayland e Vulkan, o Electron pode apresentar problemas relacionados à GPU.
+
+Durante o desenvolvimento, caso:
+
+```bash
+npm run electron
+```
+
+apresente problemas gráficos ou encerre inesperadamente, execute:
 
 ```bash
 npx electron --disable-gpu --ozone-platform=x11 electron/main.js
 ```
 
-Após gerar a aplicação empacotada, a versão não instalada pode ser executada com:
-
-```bash
-./dist/linux-unpacked/zootomia --disable-gpu --ozone-platform=x11
-```
-
-Os parâmetros:
+Os parâmetros utilizados são:
 
 ```text
 --disable-gpu
 ```
 
-desabilita a aceleração gráfica por GPU.
+Desabilita a aceleração gráfica por GPU.
 
 ```text
 --ozone-platform=x11
 ```
 
-faz o Electron utilizar o backend X11 em vez do Wayland.
+Faz o Electron utilizar o backend X11 em vez do Wayland.
 
-Esses parâmetros são necessários caso o ambiente Linux apresente problemas de compatibilidade com Wayland/Vulkan.
+Esses parâmetros são utilizados para contornar problemas gráficos específicos do ambiente Linux durante a execução do Electron.
 
 ---
-
 # Build para macOS
 
 O build para macOS é realizado automaticamente pelo GitHub Actions, utilizando um runner macOS. Dessa forma, não é necessário possuir um computador com macOS.
