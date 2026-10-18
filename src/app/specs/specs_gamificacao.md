@@ -33,7 +33,7 @@ Pontuação, acertos, erros, gráfico verde/vermelho
 Mantém tudo e acrescenta nível, medalhas, card, compartilhamento e "Para revisar" (seção 8)
 12.2 Finished game
 Voltar ao menu sem confirmação
-Mantido. A tela de resultado é o estado FINISHED
+A tela de resultado é o estado FINISHED. Voltar ao menu ou iniciar nova partida ("Jogar novamente") exige confirmação para não descartar o resultado atual acidentalmente
 13 Game Persistence
 Progresso não é persistido
 Mantido. Acrescenta: histórico da sessão só em memória (seção 6)
@@ -75,9 +75,8 @@ Pontos ainda não perguntados ficam brancos com número escuro.
 Nenhum nome de estrutura aparece na imagem, nunca, em nenhuma vista.
 Os marcadores são posicionados em porcentagem da imagem (left = x * 100%, top = y * 100%), centralizados no ponto, para funcionar com a janela redimensionada.
 3.3 Escolha da imagem
-"Jogar" no menu inicia a partida com uma imagem sorteada entre as disponíveis (cão e gato misturados).
-Na tela de resultado, "Jogar novamente" repete a mesma imagem com um novo sorteio de pontos.
-"Outra imagem" sorteia uma imagem diferente da atual. Se só existir uma imagem, o botão não aparece.
+"Jogar" no menu inicia a partida com as questões da espécie selecionada.
+Na tela de resultado, "Jogar novamente" inicia uma nova partida com um novo sorteio de questões.
 Não há tela de escolha de imagem nesta versão (questão em aberto 17.2).
 3.4 Sorteio dos pontos
 Sortear até 10 pontos distintos da imagem principal, em ordem aleatória (Fisher–Yates, como o shuffle já existente).
@@ -242,7 +241,7 @@ Comparação: delta = pct atual − pct da última partida terminada da sessão,
 Primeira partida da sessão: não existe comparação; o bloco não aparece no card nem no resultado.
 Comparação é com qualquer imagem, não só com a mesma. (Questão em aberto 17.4.)
 Proibido: usar localStorage, sessionStorage, IndexedDB, cookies, arquivos ou o store do Electron para isso. Fechar ou recarregar o app zera a sessão, como a v2.0 (24.4) já prevê.
-A sessão não afeta pontuação, nível, medalhas nem o sorteio (v2.0, 8.5). A única exceção é o sorteio de "Outra imagem", que evita repetir a imagem atual.
+A sessão não afeta pontuação, nível, medalhas nem o sorteio (v2.0, 8.5).
 7. Tela de jogo
 A tela mantém o arranjo da v2.0 — imagem à esquerda, respostas à direita — e acrescenta pontos numerados, vistas extras, faixa de pontos e indicador de sequência. Referência visual: artboard "Jogo — quiz por imagem" (seção 18).
 7.1 Barra superior (altura 76 px, fundo #1C3528)
@@ -294,7 +293,7 @@ Alternativa brilha dourado, "+5" sobe
 1.100 ms
 Alternativa errada
 Escolhida treme em vermelho; a correta acende verde; "Era: <nome>"
-1.600 ms
+2.500 ms
 
 O avanço é automático; não existe botão "Próxima".
 Na última questão, após o tempo acima, a partida vai para FINISHED e abre a tela de resultado.
@@ -310,7 +309,7 @@ Coluna do card
 Seletor de formato + pré-visualização do card + legenda
 Barra superior
 Restante, 68 px
-"Menu" (sem confirmação, v2.0 12.2) · "Fim de jogo!" · nome da imagem
+"Menu" (com modal de confirmação) · "Fim de jogo!" · nome da imagem
 Conteúdo
 Restante
 Resumo → medalhas → compartilhar → para revisar → botões finais
@@ -351,15 +350,13 @@ Copia o texto de compartilhamento; o rótulo vira "Copiado!" por 1,6 s
 
 Abaixo dos botões, uma caixa tracejada mostra o texto que será copiado/enviado (seção 10.4), com a faixa desenhada em quadrados coloridos. Ao lado: "Texto que vai junto no WhatsApp e no X. No Instagram a imagem é baixada e o app mostra como postar no Story."
 8.6 Para revisar
-Lista as questões WRONG primeiro e depois as ALTERNATIVE, cada grupo na ordem das questões.
-Cada linha: quadrado da cor do resultado · nome correto em negrito · detalhe · link "Ver na galeria".
-Detalhe: WRONG → "você marcou “<alternativa escolhida>”"; ALTERNATIVE → "acertou só na alternativa".
-"Ver na galeria" navega para a Galeria com o visualizador ampliado aberto na imagem da partida (/gallery?img=<imageId>). Isso não precisa de login: usa só os dados da partida atual.
+Lista as questões WRONG e ALTERNATIVE na ordem das questões.
+Cada linha: quadrado da cor do resultado · nome correto em negrito · detalhe.
+Detalhe: WRONG → "Você errou a alternativa."; ALTERNATIVE → "Acertou só na alternativa."
 Sem nada para revisar: uma linha única "Nada para revisar. Mandou bem!".
 8.7 Botões finais (canto inferior direito)
-"Outra imagem" (contorno #2C7A54): nova partida com imagem diferente (seção 3.3). Oculto se só houver uma imagem.
-"Jogar novamente" (fundo #1C3528): nova partida com a mesma imagem.
-Os dois zeram tudo, conforme a v2.0 (8.5), e registram a partida terminada na sessão antes de zerar.
+"Jogar novamente" (fundo #1C3528): abre um modal de confirmação antes de iniciar uma nova partida, evitando que o resultado atual seja apagado acidentalmente.
+Ao confirmar, zera tudo conforme a v2.0 (8.5) e inicia uma nova partida (a partida terminada já foi registrada na sessão ao atingir FINISHED).
 9. Card compartilhável
 O card existe em dois formatos: Story 9:16, exportado em 1080×1920 px, e Quadrado 1:1, exportado em 1080×1080 px. Ele é desenhado em medidas fixas (540×960 e 600×600) e exportado com escala 2× e 1,8×. Referência: artboards "Card — Story" e "Card — Quadrado".
 9.1 Regras gerais
@@ -514,7 +511,7 @@ Botão escolhido fica #D9A93A com halo 0 0 0 6px rgba(217,169,58,.45); "+5" sobe
 fx-wrong
 Alternativa errada
 Escolhida #C94F3D e treme (±8 px, 4 oscilações em 400 ms); após 300 ms a correta vira #2F8A5E com texto branco. Sem som, sem perder pontos
-1.600 ms
+2.500 ms
 fx-streak
 Sequência chega a 3+
 Pílula do foguinho entra com escala 1 → 1,18 → 1; a cada acerto seguinte repete o pulo; foguinho oscila ±2° em loop de 500 ms
@@ -742,18 +739,12 @@ marcaste “{alt}”
 result.reviewAlt
 acertou só na alternativa
 acertaste solo en la alternativa
-result.reviewGallery
-Ver na galeria
-Ver en la galería
 result.reviewNone
 Nada para revisar. Mandou bem!
 Nada que repasar. ¡Muy bien!
 result.playAgain
 Jogar novamente
 Jugar de nuevo
-result.otherImage
-Outra imagem
-Otra imagen
 toast.saved
 Imagem salva!
 ¡Imagen guardada!
@@ -964,8 +955,8 @@ AC-G13 DADA a última resposta, ENTÃO após o feedback abre o resultado com pon
 AC-G14 DADA a primeira partida da sessão, ENTÃO não aparece "vs. partida anterior"; DADA a segunda, ENTÃO aparece a diferença para a anterior.
 AC-G15 DADO que o app é recarregado, ENTÃO a próxima partida não mostra comparação (nada foi salvo).
 AC-G16 Em nenhum momento o app escreve em localStorage, sessionStorage, IndexedDB ou cookies (verificável pelo DevTools).
-AC-G17 DADA uma partida com erros, ENTÃO "Para revisar" lista os erros e depois os acertos na alternativa, e "Ver na galeria" abre a Galeria com o visualizador na imagem da partida.
-AC-G18 "Jogar novamente" repete a imagem com novo sorteio; "Outra imagem" troca de imagem; os dois começam com tudo zerado.
+AC-G17 DADA uma partida com erros, ENTÃO "Para revisar" lista as estruturas erradas e as acertadas na alternativa.
+AC-G18 Clicar em "Jogar novamente" exibe um modal de confirmação antes de descartar o resultado atual; ao confirmar, inicia uma nova partida com novo sorteio e tudo zerado.
 16.4 Card e compartilhamento
 AC-G19 A pré-visualização e o PNG baixado são visualmente idênticos e têm 1080×1920 (Story) ou 1080×1080 (Quadrado).
 AC-G20 O card Story mostra: marca, nome da imagem, selo e nome do nível, pontuação, anel de acerto, números de primeira / na alternativa / erros, faixa colorida, medalhas (se houver), melhor sequência com foguinho, comparação (se houver), convite e data/hora.

@@ -72,7 +72,7 @@ Return to main menu
 Main Menu
 
 4.2 Navigation restrictions
-The Game screen has special navigation behavior when a game is in progress. Leaving an active game requires user confirmation because the current game progress will be discarded. Leaving the Game screen after the game has finished does not require confirmation.
+The Game screen has special navigation behavior. Leaving an active game or the finished result screen requires user confirmation because the current game progress or displayed result will be discarded. Starting a new game from the result screen ("Jogar novamente") also requires confirmation.
 5. FEATURE 1 — Main Menu
 5.1 Purpose
 The Main Menu is the initial screen of the game and acts as the primary navigation interface. The screen must provide four actions:
@@ -301,8 +301,7 @@ its progress must not be saved;
 the user must be taken to the Main Menu.
 12.2 Finished game
 If the game has already finished:
-clicking the return control must immediately take the player to the Main Menu;
-no confirmation modal must be displayed.
+clicking any return-to-menu control or the "Jogar novamente" button must also display a confirmation modal before discarding the current result screen.
 13. Game Persistence
 Game progress must not be persisted in this version.
 When a game is abandoned:
@@ -391,10 +390,10 @@ WHEN the player confirms
 THEN the game must be abandoned
 AND its progress must not be saved
 AND the Main Menu must be displayed.
-AC-2.14 Return after game completion
+AC-2.14 Return or restart after game completion
 GIVEN the game has finished
-WHEN the player clicks the return-to-menu control
-THEN the Main Menu must be displayed without a confirmation modal.
+WHEN the player clicks the return-to-menu control or "Jogar novamente"
+THEN a confirmation modal must be displayed before leaving the result screen or starting a new game.
 17. FEATURE 3 — Gallery
 17.1 Purpose
 The Gallery allows the player to study the anatomical models outside of the quiz. The Gallery must display anatomical model images in a grid.
@@ -408,7 +407,7 @@ the selected image must open in an enlarged viewer;
 the player must be able to navigate to the previous image;
 the player must be able to navigate to the next image;
 the player must be able to close the enlarged viewer.
-17.5 Enlarged viewer
+17.5 Enlarged viewer and anatomical identification
 The enlarged image must:
 preserve its original aspect ratio;
 fit within the available viewing area;
@@ -416,7 +415,12 @@ not be distorted.
 The viewer must provide:
 previous-image control;
 next-image control;
-close control.
+close control;
+a "Mostrar Nomes" / "Esconder Nomes" toggle control.
+Anatomical markers on the enlarged image:
+Each mapped anatomical structure is displayed as a marker positioned at its exact coordinates on the image.
+When "Mostrar Nomes" is active, markers display their corresponding index number (1..N) and an interactive lateral list of all structures is displayed alongside the image, preventing label overlap on densely annotated images.
+Hovering or clicking either a numbered marker on the image or an item in the lateral list highlights the target anatomical region with an enlarged pulsing halo, dims the remaining markers for visual clarity, and displays a high-contrast floating label for that specific structure.
 17.6 Image navigation
 The previous control must display the previous image in the gallery sequence.
 The next control must display the next image in the gallery sequence. The behavior when the user reaches the first or last image is navigation loops back to the opposite end.
@@ -455,6 +459,11 @@ AC-3.8 Return to menu
 GIVEN the player is on the Gallery screen
 WHEN the player activates the return-to-menu control
 THEN the Main Menu must be displayed.
+AC-3.9 Structure names without overlap
+GIVEN the enlarged viewer is displayed
+WHEN the player activates "Mostrar Nomes"
+THEN numbered markers must appear on the anatomical structures alongside an interactive lateral list of names without overlapping text on the image
+AND hovering or clicking a structure in the list or on the image must highlight the corresponding anatomical point and display its high-contrast label.
 19. FEATURE 4 — About
 19.1 Purpose
 The About screen provides information about the general operation and purpose of Zootomia.

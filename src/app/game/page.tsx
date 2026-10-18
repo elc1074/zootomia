@@ -126,6 +126,7 @@ export default function Game() {
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [cardFormat, setCardFormat] = useState<"story" | "square">("story");
   const [showExitModal, setShowExitModal] = useState(false);
+  const [showRestartModal, setShowRestartModal] = useState(false);
   const { language } = useLanguage();
   const t = TRANSLATIONS[language].game;
 
@@ -146,6 +147,7 @@ export default function Game() {
     setSelectedOption(null);
     setFeedback(null);
     setShowExitModal(false);
+    setShowRestartModal(false);
   }
 
   if (!questions) {
@@ -173,7 +175,7 @@ export default function Game() {
     return alvo.includes(normalize(texto));
   }
 
-  function advanceQuestion() {
+  function advanceQuestion(delayMs = 1100) {
     setTimeout(() => {
       setViewIndex(0);
       setSelectedOption(null);
@@ -187,7 +189,7 @@ export default function Game() {
       } else {
         setQuestionIndex((i) => i + 1);
       }
-    }, 1100);
+    }, delayMs);
   }
 
   function handleTextSubmit(e: React.FormEvent) {
@@ -205,7 +207,7 @@ export default function Game() {
       setCurrentStreak((c) => { const n = c + 1; if (n > bestStreak) setBestStreak(n); return n; });
       setQuestionResults(r => [...r, "DIRECT"]);
       setQuestionState("ANSWERED");
-      advanceQuestion();
+      advanceQuestion(1100);
     } else {
       setFeedback("wrong");
       setQuestionState("SHOWING_ALTERNATIVES");
@@ -223,20 +225,17 @@ export default function Game() {
       setCorrectCount((c) => c + 1);
       setCurrentStreak((c) => { const n = c + 1; if (n > bestStreak) setBestStreak(n); return n; });
       setQuestionResults(r => [...r, "ALTERNATIVE"]);
+      advanceQuestion(1100);
     } else {
       setIncorrectCount((c) => c + 1);
       setCurrentStreak(0);
       setQuestionResults(r => [...r, "WRONG"]);
+      advanceQuestion(2500);
     }
-    advanceQuestion();
   }
 
   function handleReturnMenu() {
-    if (gameState === "IN_PROGRESS") {
-      setShowExitModal(true);
-    } else {
-      router.push("/");
-    }
+    setShowExitModal(true);
   }
 
   const answeredViaTexto = questionState === "ANSWERED" && selectedOption === null;
@@ -677,23 +676,7 @@ export default function Game() {
           especie={especie}
           t={t}
           lastGame={getPreviousGame()}
-          playSame={() => {
-            setQuestions(buildQuestions(IMAGES.filter((img) => img.especie === especie)));
-            setQuestionIndex(0);
-            setViewIndex(0);
-            setScore(0);
-            setCorrectCount(0);
-            setIncorrectCount(0);
-            setCurrentStreak(0);
-            setBestStreak(0);
-            setQuestionResults([]);
-            setQuestionState("AWAITING_TEXT_ANSWER");
-            setTextAnswer("");
-            setEmptyError(false);
-            setFeedback(null);
-            setSelectedOption(null);
-            setGameState("IN_PROGRESS");
-          }}
+          playSame={() => setShowRestartModal(true)}
         />
       )}
 
@@ -719,13 +702,65 @@ export default function Game() {
                 onClick={() => setShowExitModal(false)}
                 style={{ padding: "8px 16px", borderRadius: 6, background: "rgba(100,70,40,0.15)", color: "#1A2E22", fontWeight: 700, border: "none", cursor: "pointer" }}
               >
-                Cancelar
+                {TRANSLATIONS[language].menu.cancel}
               </button>
               <button
                 onClick={() => router.push("/")}
                 style={{ padding: "8px 16px", borderRadius: 6, background: "#C4845A", color: "#FFF", fontWeight: 700, border: "none", cursor: "pointer" }}
               >
-                Confirmar
+                {TRANSLATIONS[language].menu.confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restart Modal */}
+      {showRestartModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div style={{ background: "#C8B498", padding: 32, borderRadius: 8, boxShadow: "0 10px 30px rgba(0,0,0,0.5)", border: "1px solid rgba(100,70,40,0.2)", maxWidth: 400 }}>
+            <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: "#1A2E22", marginBottom: 24, fontFamily: "'Nunito', sans-serif" }}>
+              {t.playAgainConfirm}
+            </h2>
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={() => setShowRestartModal(false)}
+                style={{ padding: "8px 16px", borderRadius: 6, background: "rgba(100,70,40,0.15)", color: "#1A2E22", fontWeight: 700, border: "none", cursor: "pointer" }}
+              >
+                {TRANSLATIONS[language].menu.cancel}
+              </button>
+              <button
+                onClick={() => {
+                  setShowRestartModal(false);
+                  setQuestions(buildQuestions(IMAGES.filter((img) => img.especie === especie)));
+                  setQuestionIndex(0);
+                  setViewIndex(0);
+                  setScore(0);
+                  setCorrectCount(0);
+                  setIncorrectCount(0);
+                  setCurrentStreak(0);
+                  setBestStreak(0);
+                  setQuestionResults([]);
+                  setQuestionState("AWAITING_TEXT_ANSWER");
+                  setTextAnswer("");
+                  setEmptyError(false);
+                  setFeedback(null);
+                  setSelectedOption(null);
+                  setGameState("IN_PROGRESS");
+                }}
+                style={{ padding: "8px 16px", borderRadius: 6, background: "#C4845A", color: "#FFF", fontWeight: 700, border: "none", cursor: "pointer" }}
+              >
+                {TRANSLATIONS[language].menu.confirm}
               </button>
             </div>
           </div>
@@ -1102,9 +1137,6 @@ function FinishedScreen({ questions, questionResults, score, correctCount, incor
                         {isWrong ? "Você errou a alternativa." : "Acertou só na alternativa."}
                       </span>
                     </div>
-                    <button style={{ background: "transparent", border: "none", color: tokens.greenBrand, fontWeight: 700, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
-                      Ver na galeria
-                    </button>
                   </div>
                 );
               })}
@@ -1118,7 +1150,6 @@ function FinishedScreen({ questions, questionResults, score, correctCount, incor
           </div>
           
           <div style={{ display: "flex", justifyContent: "flex-end", padding: "24px 40px", gap: 16 }}>
-             <button style={{ padding: "14px 24px", borderRadius: 8, border: `1.5px solid ${tokens.greenButton}`, color: tokens.greenButton, fontWeight: 700, background: "transparent", cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>Outra imagem</button>
              <button onClick={playSame} style={{ padding: "14px 24px", borderRadius: 8, background: tokens.greenDark, color: "#FFF", fontWeight: 700, border: "none", cursor: "pointer", fontFamily: "'Nunito', sans-serif" }}>Jogar novamente</button>
           </div>
 

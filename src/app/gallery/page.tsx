@@ -14,18 +14,26 @@ const GALLERY_IMAGES = IMAGES.map(img => img.src);
 export default function Gallery() {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [showNames, setShowNames] = useState(false);
+  const [hoveredMarker, setHoveredMarker] = useState<number | null>(null);
+  const [pinnedMarker, setPinnedMarker] = useState<number | null>(null);
   const { language } = useLanguage();
   const t = TRANSLATIONS[language].gallery;
+
+  const activeMarker = hoveredMarker !== null ? hoveredMarker : pinnedMarker;
 
   function handleNext() {
     if (viewerIndex !== null) {
       setViewerIndex((viewerIndex + 1) % GALLERY_IMAGES.length);
+      setHoveredMarker(null);
+      setPinnedMarker(null);
     }
   }
 
   function handlePrev() {
     if (viewerIndex !== null) {
       setViewerIndex((viewerIndex - 1 + GALLERY_IMAGES.length) % GALLERY_IMAGES.length);
+      setHoveredMarker(null);
+      setPinnedMarker(null);
     }
   }
 
@@ -34,6 +42,14 @@ export default function Gallery() {
       className="size-full flex flex-col overflow-hidden min-h-screen"
       style={{ background: "#C8B498", fontFamily: "'Nunito', sans-serif" }}
     >
+      <style>{`
+        @keyframes gallery-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(232, 194, 82, 0.9), 0 4px 12px rgba(0,0,0,0.6); }
+          70% { box-shadow: 0 0 0 14px rgba(232, 194, 82, 0), 0 4px 12px rgba(0,0,0,0.6); }
+          100% { box-shadow: 0 0 0 0 rgba(232, 194, 82, 0), 0 4px 12px rgba(0,0,0,0.6); }
+        }
+      `}</style>
+
       {/* Header */}
       <header
         className="flex items-center gap-6 px-8 py-4 shrink-0"
@@ -99,7 +115,11 @@ export default function Gallery() {
           {GALLERY_IMAGES.map((src, idx) => (
             <div 
               key={idx}
-              onClick={() => setViewerIndex(idx)}
+              onClick={() => {
+                setViewerIndex(idx);
+                setHoveredMarker(null);
+                setPinnedMarker(null);
+              }}
               style={{
                 aspectRatio: "1/1",
                 position: "relative",
@@ -126,94 +146,328 @@ export default function Gallery() {
         <div style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,0.9)",
+          background: "rgba(15, 28, 21, 0.94)",
           zIndex: 100,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
+          flexDirection: "column",
         }}>
-          <div style={{ position: "absolute", top: 20, right: 30, zIndex: 110, display: "flex", gap: 16, alignItems: "center" }}>
-            <button 
-              onClick={() => setShowNames(!showNames)}
-              style={{ background: showNames ? "#8DC9A0" : "rgba(255,255,255,0.1)", border: "none", color: showNames ? "#1C3528" : "#FFF", fontSize: "0.9rem", fontWeight: 700, padding: "8px 16px", borderRadius: 999, cursor: "pointer" }}
-            >
-              {showNames ? "Esconder Nomes" : "Mostrar Nomes"}
-            </button>
-            <button 
-              onClick={() => {
-                setViewerIndex(null);
-                setShowNames(false);
-              }}
-              style={{ background: "none", border: "none", color: "#FFF", fontSize: "2rem", cursor: "pointer", lineHeight: 1 }}
-            >
-              &times;
-            </button>
-          </div>
-          
-          <button 
-            onClick={handlePrev}
-            style={{ position: "absolute", left: 30, background: "none", border: "none", color: "#FFF", fontSize: "3rem", cursor: "pointer", zIndex: 110 }}
-          >
-            &#8249;
-          </button>
-          
-          <div style={{ position: "relative", display: "inline-block", maxWidth: "90vw", maxHeight: "85vh" }}>
-            <img 
-              src={IMAGES[viewerIndex].src}
-              alt="Imagem Ampliada"
-              style={{ display: "block", maxWidth: "100%", maxHeight: "85vh", width: "auto", height: "auto" }}
-            />
-            {/* Markers Overlay */}
-            {IMAGES[viewerIndex].markers.map((marker, i) => (
-              <div
-                key={i}
-                className="group"
+          {/* Viewer Top Bar */}
+          <div style={{
+            height: 64,
+            padding: "0 32px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderBottom: "1px solid rgba(141,201,160,0.15)",
+            background: "rgba(28, 53, 40, 0.8)",
+            flexShrink: 0,
+            zIndex: 110,
+          }}>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: "1.1rem", color: "#FFF", lineHeight: 1.1 }}>
+                {IMAGES[viewerIndex].titulo[language]}
+              </span>
+              <span style={{ fontSize: "0.75rem", color: "#8DC9A0", fontStyle: "italic" }}>
+                {IMAGES[viewerIndex].especie} · {IMAGES[viewerIndex].markers.length} {t.structures.toLowerCase()}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+              <button 
+                onClick={() => setShowNames(!showNames)}
                 style={{
-                  position: "absolute",
-                  left: `${marker.x * 100}%`,
-                  top: `${marker.y * 100}%`,
-                  width: 14,
-                  height: 14,
-                  transform: "translate(-50%, -50%)",
-                  background: "#E8C252",
-                  border: "2px solid #1C3528",
-                  borderRadius: "50%",
+                  background: showNames ? "#E8C252" : "rgba(255,255,255,0.12)",
+                  border: showNames ? "1.5px solid #E8C252" : "1.5px solid rgba(255,255,255,0.2)",
+                  color: showNames ? "#1C3528" : "#FFF",
+                  fontSize: "0.88rem",
+                  fontWeight: 800,
+                  padding: "8px 18px",
+                  borderRadius: 999,
                   cursor: "pointer",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
-                  zIndex: 20
+                  transition: "all 0.15s ease",
                 }}
               >
-                {/* Tooltip on hover or permanently visible if showNames is true */}
-                <div 
-                  className={showNames ? "" : "hidden group-hover:block"}
-                  style={{
-                    position: "absolute",
-                    left: 20,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "rgba(28, 53, 40, 0.85)",
-                    color: "#FFF",
-                    padding: "4px 8px",
-                    borderRadius: 4,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    fontFamily: "'Nunito', sans-serif",
-                    whiteSpace: "nowrap",
-                    pointerEvents: "none"
-                  }}
-                >
-                  {language === "pt" ? marker.name.pt : marker.name.es}
-                </div>
-              </div>
-            ))}
+                {showNames ? t.hideNames : t.showNames}
+              </button>
+              <button 
+                onClick={() => {
+                  setViewerIndex(null);
+                  setShowNames(false);
+                  setHoveredMarker(null);
+                  setPinnedMarker(null);
+                }}
+                aria-label="Fechar"
+                style={{
+                  background: "rgba(255,255,255,0.1)",
+                  border: "none",
+                  color: "#FFF",
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  fontSize: "1.5rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  lineHeight: 1,
+                }}
+              >
+                &times;
+              </button>
+            </div>
           </div>
-          
-          <button 
-            onClick={handleNext}
-            style={{ position: "absolute", right: 30, background: "none", border: "none", color: "#FFF", fontSize: "3rem", cursor: "pointer", zIndex: 110 }}
-          >
-            &#8250;
-          </button>
+
+          {/* Viewer Main Area: Image + Optional Sidebar */}
+          <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
+            {/* Left/Center: Image Canvas */}
+            <div
+              onClick={() => setPinnedMarker(null)}
+              style={{
+                flex: 1,
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "24px 64px",
+                overflow: "hidden",
+              }}
+            >
+              <button 
+                onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+                style={{
+                  position: "absolute",
+                  left: 20,
+                  background: "rgba(28, 53, 40, 0.85)",
+                  border: "1px solid rgba(141,201,160,0.3)",
+                  color: "#FFF",
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  fontSize: "2rem",
+                  cursor: "pointer",
+                  zIndex: 110,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  lineHeight: 1,
+                }}
+              >
+                &#8249;
+              </button>
+
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  position: "relative",
+                  display: "inline-block",
+                  maxWidth: showNames ? "calc(90vw - 360px)" : "85vw",
+                  maxHeight: "80vh",
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src={IMAGES[viewerIndex].src}
+                  alt={IMAGES[viewerIndex].titulo[language]}
+                  style={{
+                    display: "block",
+                    maxWidth: "100%",
+                    maxHeight: "80vh",
+                    width: "auto",
+                    height: "auto",
+                    borderRadius: 8,
+                    boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+                  }}
+                />
+                {/* Markers Overlay */}
+                {IMAGES[viewerIndex].markers.map((marker, i) => {
+                  const isActive = activeMarker === i;
+                  const isDimmed = activeMarker !== null && !isActive;
+                  const isRightSide = marker.x > 0.65;
+                  const isTopEdge = marker.y < 0.12;
+
+                  return (
+                    <div
+                      key={i}
+                      onMouseEnter={() => setHoveredMarker(i)}
+                      onMouseLeave={() => setHoveredMarker(null)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPinnedMarker(pinnedMarker === i ? null : i);
+                      }}
+                      style={{
+                        position: "absolute",
+                        left: `${marker.x * 100}%`,
+                        top: `${marker.y * 100}%`,
+                        width: showNames || isActive ? 24 : 16,
+                        height: showNames || isActive ? 24 : 16,
+                        transform: `translate(-50%, -50%) scale(${isActive ? 1.25 : 1})`,
+                        background: isActive ? "#E8C252" : showNames ? "#1C3528" : "#E8C252",
+                        color: isActive ? "#1C3528" : "#FFF",
+                        border: isActive ? "2.5px solid #FFF" : showNames ? "2px solid #E8C252" : "2px solid #1C3528",
+                        borderRadius: "50%",
+                        cursor: "pointer",
+                        boxShadow: isActive ? "0 0 0 6px rgba(232,194,82,0.45), 0 4px 12px rgba(0,0,0,0.6)" : "0 2px 6px rgba(0,0,0,0.55)",
+                        animation: isActive ? "gallery-pulse 1.4s infinite" : "none",
+                        zIndex: isActive ? 50 : 20,
+                        opacity: isDimmed ? 0.45 : 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "11px",
+                        fontWeight: 800,
+                        fontFamily: "'Nunito', sans-serif",
+                        transition: "all 0.15s ease",
+                        userSelect: "none",
+                      }}
+                    >
+                      {(showNames || isActive) && (i + 1)}
+
+                      {/* Floating high-contrast badge only for the active/hovered marker */}
+                      {isActive && (
+                        <div 
+                          style={{
+                            position: "absolute",
+                            ...(isRightSide ? { right: 30 } : { left: 30 }),
+                            ...(isTopEdge ? { top: 0 } : { top: "50%", transform: "translateY(-50%)" }),
+                            background: "#1C3528",
+                            color: "#FFF",
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            border: "1.5px solid #E8C252",
+                            fontSize: "13px",
+                            fontWeight: 800,
+                            fontFamily: "'Nunito', sans-serif",
+                            whiteSpace: "nowrap",
+                            pointerEvents: "none",
+                            boxShadow: "0 6px 18px rgba(0,0,0,0.65)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            zIndex: 60,
+                          }}
+                        >
+                          <span style={{
+                            background: "#E8C252",
+                            color: "#1C3528",
+                            borderRadius: 4,
+                            padding: "1px 6px",
+                            fontSize: "11px",
+                            fontWeight: 900,
+                          }}>
+                            #{i + 1}
+                          </span>
+                          <span>{language === "pt" ? marker.name.pt : marker.name.es}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                style={{
+                  position: "absolute",
+                  right: 20,
+                  background: "rgba(28, 53, 40, 0.85)",
+                  border: "1px solid rgba(141,201,160,0.3)",
+                  color: "#FFF",
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  fontSize: "2rem",
+                  cursor: "pointer",
+                  zIndex: 110,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  lineHeight: 1,
+                }}
+              >
+                &#8250;
+              </button>
+            </div>
+
+            {/* Right: Interactive Structures List when showNames is enabled */}
+            {showNames && (
+              <aside
+                style={{
+                  width: 340,
+                  background: "#1C3528",
+                  borderLeft: "1px solid rgba(141,201,160,0.18)",
+                  display: "flex",
+                  flexDirection: "column",
+                  flexShrink: 0,
+                  zIndex: 105,
+                }}
+              >
+                <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(141,201,160,0.15)" }}>
+                  <div style={{ fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: "1.05rem", color: "#E8C252" }}>
+                    {t.structures} ({IMAGES[viewerIndex].markers.length})
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#8DC9A0", marginTop: 2 }}>
+                    {t.hint}
+                  </div>
+                </div>
+
+                <div style={{ flex: 1, overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: 6 }}>
+                  {IMAGES[viewerIndex].markers.map((marker, i) => {
+                    const isActive = activeMarker === i;
+                    const isPinned = pinnedMarker === i;
+                    return (
+                      <button
+                        key={i}
+                        onMouseEnter={() => setHoveredMarker(i)}
+                        onMouseLeave={() => setHoveredMarker(null)}
+                        onClick={() => setPinnedMarker(isPinned ? null : i)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "9px 12px",
+                          borderRadius: 8,
+                          border: isActive ? "1.5px solid #E8C252" : "1.5px solid transparent",
+                          background: isActive ? "rgba(232, 194, 82, 0.16)" : "rgba(255, 255, 255, 0.05)",
+                          color: "#FFF",
+                          cursor: "pointer",
+                          transition: "all 0.12s ease",
+                          fontFamily: "'Nunito', sans-serif",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: "50%",
+                            background: isActive ? "#E8C252" : "rgba(141,201,160,0.18)",
+                            color: isActive ? "#1C3528" : "#E8C252",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "0.75rem",
+                            fontWeight: 800,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {i + 1}
+                        </span>
+                        <span style={{
+                          fontSize: "0.86rem",
+                          fontWeight: isActive ? 800 : 600,
+                          color: isActive ? "#E8C252" : "#F5EFE6",
+                          lineHeight: 1.25,
+                        }}>
+                          {language === "pt" ? marker.name.pt : marker.name.es}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+            )}
+          </div>
         </div>
       )}
     </div>
