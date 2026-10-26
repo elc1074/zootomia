@@ -7,9 +7,11 @@ import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { TRANSLATIONS } from "@/data/locales";
 
-import { IMAGES } from "@/data/anatomy";
+import { IMAGES, IMAGES_RESERVADAS } from "@/data/anatomy";
 
-const GALLERY_IMAGES = IMAGES.map(img => img.src);
+// A galeria também mostra as imagens reservadas (ainda fora do jogo), como as do gato.
+const GALERIA = [...IMAGES, ...IMAGES_RESERVADAS];
+const GALLERY_IMAGES = GALERIA.map(img => img.src);
 
 export default function Gallery() {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -165,10 +167,10 @@ export default function Gallery() {
           }}>
             <div style={{ display: "flex", flexDirection: "column" }}>
               <span style={{ fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: "1.1rem", color: "#FFF", lineHeight: 1.1 }}>
-                {IMAGES[viewerIndex].titulo[language]}
+                {GALERIA[viewerIndex].titulo[language]}
               </span>
               <span style={{ fontSize: "0.75rem", color: "#8DC9A0", fontStyle: "italic" }}>
-                {IMAGES[viewerIndex].especie} · {IMAGES[viewerIndex].markers.length} {t.structures.toLowerCase()}
+                {GALERIA[viewerIndex].especie} · {GALERIA[viewerIndex].markers.length} {t.structures.toLowerCase()}
               </span>
             </div>
 
@@ -266,8 +268,8 @@ export default function Gallery() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
-                  src={IMAGES[viewerIndex].src}
-                  alt={IMAGES[viewerIndex].titulo[language]}
+                  src={GALERIA[viewerIndex].src}
+                  alt={GALERIA[viewerIndex].titulo[language]}
                   style={{
                     display: "block",
                     maxWidth: "100%",
@@ -279,7 +281,7 @@ export default function Gallery() {
                   }}
                 />
                 {/* Markers Overlay */}
-                {IMAGES[viewerIndex].markers.map((marker, i) => {
+                {GALERIA[viewerIndex].markers.map((marker, i) => {
                   const isActive = activeMarker === i;
                   const isDimmed = activeMarker !== null && !isActive;
                   const isRightSide = marker.x > 0.65;
@@ -403,7 +405,7 @@ export default function Gallery() {
               >
                 <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(141,201,160,0.15)" }}>
                   <div style={{ fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: "1.05rem", color: "#E8C252" }}>
-                    {t.structures} ({IMAGES[viewerIndex].markers.length})
+                    {t.structures} ({GALERIA[viewerIndex].markers.length})
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "#8DC9A0", marginTop: 2 }}>
                     {t.hint}
@@ -411,7 +413,7 @@ export default function Gallery() {
                 </div>
 
                 <div style={{ flex: 1, overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: 6 }}>
-                  {IMAGES[viewerIndex].markers.map((marker, i) => {
+                  {GALERIA[viewerIndex].markers.map((marker, i) => {
                     const isActive = activeMarker === i;
                     const isPinned = pinnedMarker === i;
                     return (
