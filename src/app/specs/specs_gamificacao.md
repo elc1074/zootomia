@@ -10,7 +10,7 @@ Funcionar 100% offline e sem conta, dentro do Electron no futuro.
 1.2 Princípios obrigatórios
 Sem login e sem persistência. Nenhum dado de partida é gravado em disco, localStorage, sessionStorage, IndexedDB, cookies ou servidor. A única exceção é o arquivo PNG que o próprio usuário decide baixar.
 Sessão = app aberto. Dados de partidas anteriores existem só em memória (estado React) enquanto o app estiver aberto. Recarregar ou fechar apaga tudo.
-A pontuação da Especificação 2.0 não muda. +10 texto certo, +5 alternativa certa, 0 erro. Sequências e medalhas são só visuais; nunca somam pontos.
+A pontuação da Especificação 2.0 não muda. +10 acerto direto (texto certo ou 1ª tentativa no modo Só alternativas), +5 alternativa certa após erro no texto (modo Padrão), 0 erro ou tempo esgotado. Sequências e medalhas são só visuais; nunca somam pontos.
 Identidade visual existente. Paleta verde-escuro, bege e dourado, fontes Baloo 2 e Nunito (ver seção 12). Nenhuma cor ou fonte nova fora das listadas.
 Bilíngue. Todo texto novo existe em PT e ES e segue o seletor de idioma já existente (LanguageContext). O card sai no idioma selecionado.
 Nada de funcionalidade não especificada. Se algo não estiver aqui nem na Especificação 2.0, é questão em aberto (seção 17), não decisão do implementador.
@@ -21,28 +21,28 @@ Hoje diz
 Passa a dizer
 7.1 / 7.2 Game flow
 Cada questão exibe uma imagem de um modelo anatômico
-Cada partida usa uma imagem; cada questão é um ponto numerado dessa imagem (seção 3)
+Antes de cada partida, o usuário passa pela tela de Setup ("Nova partida") para escolher sistema, animal (Cão ou Gato), regiões do esqueleto, número de questões (5, 10, 15, 20 ou Tudo), modo de resposta (Padrão, Só alternativas ou Só digitar) e cronômetro opcional de 30 s (seção 3)
 7.5 / 29 Blocker 1 (alternativas)
 Em aberto
-As 3 alternativas erradas vêm de outros pontos/estruturas cadastrados (seção 3.5). Blocker resolvido
+As 3 alternativas erradas vêm de outros pontos/estruturas cadastrados (seção 3.6). Blocker resolvido
 9.3 Game status
 Número da questão, restantes, pontuação
-Acrescenta indicador de sequência e faixa de pontos (seção 7)
+Acrescenta indicador de sequência, cronômetro opcional de 30 s e faixa de pontos (seção 7)
 11 Game Result
 Pontuação, acertos, erros, gráfico verde/vermelho
 Mantém tudo e acrescenta nível, medalhas, card, compartilhamento e "Para revisar" (seção 8)
 12.2 Finished game
 Voltar ao menu sem confirmação
-A tela de resultado é o estado FINISHED. Voltar ao menu ou iniciar nova partida ("Jogar novamente") exige confirmação para não descartar o resultado atual acidentalmente
+A tela de resultado é o estado FINISHED. Voltar ao menu ou iniciar nova partida ("Jogar novamente" → retorna para a tela de Setup) exige confirmação para não descartar o resultado atual acidentalmente
 13 Game Persistence
 Progresso não é persistido
 Mantido. Acrescenta: histórico da sessão só em memória (seção 6)
 14 Question data
 Estrutura conceitual, detalhes na próxima versão
-Substituída pelo modelo de dados da seção 14 deste documento
+Substituída pelo modelo de dados da seção 14 deste documento (incluindo imagens de Cão e Gato e classificação por região anatômica)
 15 Number and selection
 10 questões, aleatórias, cão e gato misturados
-Uma imagem por partida; 10 pontos sorteados dela; a imagem é escolhida pelo usuário ou sorteada (seção 3.3)
+Configurável na tela de Setup ("Nova partida"): animal (Cão ou Gato), regiões do esqueleto (Axial, Membro torácico, Membro pélvico — garantindo ao menos 1 questão por região marcada) e quantidade de questões (5, 10, 15, 20 ou Tudo) (seção 3.3 e 3.4)
 25 Persistence
 Nada persistido
 Mantido. Única saída de dados: o PNG baixado pelo usuário
@@ -50,47 +50,61 @@ Mantido. Única saída de dados: o PNG baixado pelo usuário
 Achievements, ranking, saved progress
 Continuam fora: conquistas permanentes, ranking, progresso salvo. Entram: medalhas da partida (não salvas) e card compartilhável
 
-Regra de ouro: nenhuma dessas mudanças altera a regra de pontuação 10 / 5 / 0 nem os critérios de aceite AC-2.1 a AC-2.14 da v2.0.
-3. Modelo do quiz por imagem
-Cada partida usa uma única imagem principal com pontos numerados; cada questão pergunta "Qual estrutura é o ponto N?". A imagem pode ter vistas extras da mesma peça.
+Regra de ouro: nenhuma dessas mudanças altera a escala máxima de 10 pontos por questão (`maxScore = 10 × totalQuestões`) nem os critérios de aceite AC-2.0 a AC-2.14 da v2.0.
+3. Setup da partida ("Nova partida") e modelo do quiz
+Antes de iniciar qualquer partida (seja clicando em "Jogar" no Menu Principal ou confirmando "Jogar novamente" na tela de resultado), o usuário visita a tela de **Setup ("Nova partida")**. Durante a partida, cada questão pergunta "Qual estrutura é o ponto N?", exibindo a imagem correspondente com pontos numerados e vistas extras quando disponíveis.
 3.1 Conceitos
 Termo
 Definição
-Imagem principal
-A imagem do quiz (ex.: "Esqueleto do cão — vista lateral"). Uma por partida
+Tela de Setup ("Nova partida")
+Estado inicial (`SETUP`) da rota `/game` onde o aluno define sistema, animal, regiões anatômicas, número de questões, modo de resposta e cronômetro antes de começar
+Imagem principal da questão
+A imagem anatômica onde a estrutura sorteada está mapeada (ex.: "Esqueleto do cão — vista lateral", "Esqueleto de Gato — Vista Cranial")
 Ponto
-Uma estrutura marcada na imagem principal, com coordenadas x/y de 0 a 1 e um nome canônico PT/ES
+Uma estrutura marcada na imagem, com coordenadas x/y de 0 a 1, nome canônico PT/ES e região anatômica (`axial`, `toracico` ou `pelvico`)
 Número do ponto
-A ordem em que o ponto é perguntado na partida (1 a 10). Não é fixo na imagem: muda a cada partida
+A ordem em que o ponto é perguntado na partida (1 a N). Muda a cada partida
 Vista extra
-Outra imagem que mostra a mesma estrutura: "Outro ângulo" ou "Osso isolado"
+Outra imagem da mesma espécie que mostra a mesma estrutura em outro ângulo
 Questão
 Um ponto + seu estado (aguardando texto, alternativas, respondida) + resultado
 
 3.2 Pontos na imagem
-Ao iniciar a partida, os 10 pontos sorteados aparecem todos na imagem, numerados de 1 a 10.
+Durante a partida, os pontos sorteados presentes na imagem atual aparecem numerados com sua respectiva ordem na partida (1 a N).
 O ponto da questão atual fica destacado (dourado, borda escura, pulsando — seção 11).
-Pontos já respondidos ficam com a cor do resultado: verde (de primeira), dourado (na alternativa), vermelho (erro).
+Pontos já respondidos ficam com a cor do resultado: verde (acerto de 10 pts / `DIRECT`), dourado (acerto na 2ª chance / `ALTERNATIVE`), vermelho (erro ou tempo esgotado / `WRONG`).
 Pontos ainda não perguntados ficam brancos com número escuro.
 Nenhum nome de estrutura aparece na imagem, nunca, em nenhuma vista.
 Os marcadores são posicionados em porcentagem da imagem (left = x * 100%, top = y * 100%), centralizados no ponto, para funcionar com a janela redimensionada.
-3.3 Escolha da imagem
-"Jogar" no menu inicia a partida com as questões da espécie selecionada.
-Na tela de resultado, "Jogar novamente" inicia uma nova partida com um novo sorteio de questões.
-Não há tela de escolha de imagem nesta versão (questão em aberto 17.2).
+3.3 Configuração na tela de Setup ("Nova partida")
+A tela de Setup apresenta um cabeçalho com botão `< Menu` (que retorna ao Menu Principal sem exigir modal de confirmação, pois nenhuma partida está em andamento), título `"Nova partida"` e seletor de idioma `PT | ES`.
+À esquerda ficam as opções de configuração e à direita a coluna `"RESUMO DA PARTIDA"` com o botão `"Começar partida →"`:
+1. **SISTEMA:**
+   - `Esquelético` (ativo — "Ossos e relevos").
+   - `Nervoso` (desabilitado / em breve — "Nervos periféricos").
+2. **ANIMAL:**
+   - `Cão` (`Canis lupus familiaris` — 4 imagens).
+   - `Gato` (`Felis catus` — 3 imagens).
+3. **REGIÕES DO ESQUELETO (pelo menos uma obrigatória, com botão "Todas"):**
+   - `Esqueleto axial` ("Crânio, coluna, costelas").
+   - `Membro torácico` ("Escápula, úmero, rádio, carpo").
+   - `Membro pélvico` ("Coxal, fêmur, tíbia, tarso").
+4. **QUANTAS QUESTÕES:**
+   - Opções: `5`, `10` (padrão), `15`, `20` e `Tudo` (total de estruturas únicas nas regiões marcadas). Botões cujo valor exceda o total disponível nas regiões selecionadas ficam desabilitados.
+5. **COMO RESPONDER:**
+   - `Padrão` ("Digitar e, se errar, 4 alternativas" — `10 / 5 pts`).
+   - `Só alternativas` ("Vai direto para as 4 opções" — `10 pts`).
+   - `Só digitar` ("Sem alternativas, sem segunda chance" — `10 pts`).
+6. **EXTRA:**
+   - `Cronômetro de 30 s por questão` ("Se o tempo acabar, a questão conta como erro" — Ligado/Desligado).
 3.4 Sorteio dos pontos
-Sortear até 10 pontos distintos da imagem principal, em ordem aleatória (Fisher–Yates, como o shuffle já existente).
-Dois pontos com o mesmo nome canônico normalizado (ex.: "Falanges" marcado no membro torácico e no pélvico) contam como um só: sortear apenas um deles por partida.
-Se a imagem tiver menos de 10 nomes distintos, a partida tem esse número de questões e a pontuação máxima passa a ser 10 × questões.
-O sorteio roda só no cliente (dentro de useEffect), como o código atual faz, para evitar erro de hidratação do Next.js.
+Agrupa os pontos da espécie escolhida filtrados pelas regiões selecionadas (`axial`, `toracico`, `pelvico`).
+Dois pontos com o mesmo nome canônico normalizado em vistas diferentes da mesma espécie contam como uma única estrutura (com suporte a troca de ângulo/vista durante a questão).
+Garantia por região: se o número de questões pedidas for maior ou igual ao número de regiões marcadas, o sorteio garante pelo menos 1 estrutura de cada região selecionada, e sorteia o restante livremente dentre as estruturas restantes do pool selecionado (usando embaralhamento Fisher–Yates).
+A pontuação máxima da partida é sempre `maxScore = 10 × totalQuestões`.
 3.5 Vistas extras (outro ângulo e osso isolado)
-Acima da imagem há até três botões: Vista geral, Outro ângulo, Osso isolado.
-"Outro ângulo" só aparece se a estrutura do ponto atual tiver uma vista extra do tipo ângulo; "Osso isolado" só se tiver uma do tipo isolado. Sem vistas extras, nenhum botão aparece.
-Na vista "Outro ângulo" aparece só o marcador do ponto atual, com o mesmo número, nas coordenadas próprias daquela imagem.
-Na vista "Osso isolado" aparece a foto do osso separado. Se a estrutura for uma parte do osso (ex.: "Côndilo medial da tíbia"), a vista precisa ter coordenadas e mostra o marcador; se for o osso inteiro (ex.: "Tíbia"), o marcador é opcional.
-A foto isolada não pode conter o nome do osso nem legendas. Imagens do atlas com texto precisam ser recortadas antes.
-Trocar de vista não muda pontuação, estado nem tempo. Ao passar para a próxima questão, volta sempre para "Vista geral".
-Se houver mais de uma vista do mesmo tipo, o botão alterna entre elas a cada clique (questão em aberto 17.3).
+Acima da imagem há botões para alternar entre as vistas disponíveis daquela estrutura na espécie selecionada.
+Trocar de vista não muda pontuação, estado nem tempo. Ao passar para a próxima questão, volta sempre para a vista inicial da nova questão.
 3.6 Alternativas (resolve o Blocker 1)
 Exatamente 4 alternativas: a correta + 3 distratores, em ordem aleatória, uma por botão.
 Distratores, nesta prioridade: (a) nomes de outros pontos da mesma imagem; (b) nomes de outras imagens da mesma espécie; (c) qualquer outro nome cadastrado.
@@ -101,36 +115,44 @@ Exibidas no idioma atual (name.pt ou name.es).
 Normalização: trim, minúsculas, remover acentos (NFD sem marcas combinantes) e juntar espaços repetidos em um só.
 Respostas aceitas: name.pt, name.es e todas as grafias em aceita[], todas normalizadas.
 Campo vazio após o trim: mostrar "É necessário fornecer uma resposta" (v2.0, 24.1) e não avaliar.
-3.8 Ciclo de uma questão
-stateDiagram-v2
-    [*] --> AGUARDANDO_TEXTO
-    AGUARDANDO_TEXTO --> RESPONDIDA: texto certo (+10, de primeira)
-    AGUARDANDO_TEXTO --> ALTERNATIVAS: texto errado
-    ALTERNATIVAS --> RESPONDIDA: alternativa certa (+5)
-    ALTERNATIVAS --> RESPONDIDA: alternativa errada (0)
-    RESPONDIDA --> [*]: próxima questão ou resultado
-Os estados correspondem a AWAITING_TEXT_ANSWER, SHOWING_ALTERNATIVES e ANSWERED da v2.0.
+3.8 Ciclo de uma questão (conforme o modo escolhido no Setup)
+- **Modo `Padrão` (`standard`):**
+  - Inicia em `AWAITING_TEXT_ANSWER`.
+  - Texto certo → `ANSWERED` (`DIRECT`, +10 pts).
+  - Texto errado → `SHOWING_ALTERNATIVES` (4 opções).
+  - Alternativa certa → `ANSWERED` (`ALTERNATIVE`, +5 pts).
+  - Alternativa errada → `ANSWERED` (`WRONG`, 0 pts).
+- **Modo `Só alternativas` (`alternatives`):**
+  - Inicia direto em `SHOWING_ALTERNATIVES` (4 opções).
+  - Alternativa certa → `ANSWERED` (`DIRECT`, +10 pts).
+  - Alternativa errada → `ANSWERED` (`WRONG`, 0 pts).
+- **Modo `Só digitar` (`typing`):**
+  - Inicia em `AWAITING_TEXT_ANSWER`.
+  - Texto certo → `ANSWERED` (`DIRECT`, +10 pts).
+  - Texto errado → `ANSWERED` (`WRONG`, 0 pts, sem exibir alternativas; mostra a resposta correta).
+- **Cronômetro de 30 s (quando ligado no Setup):**
+  - Se o contador regressivo de 30 s chegar a `0` enquanto a questão estiver em `AWAITING_TEXT_ANSWER` ou `SHOWING_ALTERNATIVES`, a questão vai imediatamente para `ANSWERED` (`WRONG`, 0 pts), exibe `"Tempo esgotado!"` junto com a resposta correta por `2.500 ms` e avança automaticamente.
 4. Pontuação, níveis e sequência
-A pontuação segue a v2.0 sem mudança; o nível é calculado pela porcentagem da pontuação máxima e a sequência é só visual.
-4.1 Pontuação (inalterada)
+A pontuação mantém a escala máxima de 10 pontos por questão; o nível é calculado pela porcentagem da pontuação máxima e a sequência é só visual.
+4.1 Pontuação
 Resultado da questão
 Pontos
 Código
 Cor
-Texto certo
+Acerto direto (texto certo ou 1ª tentativa em Só alternativas)
 +10
 DIRECT
 Verde #2F8A5E
-Alternativa certa
+Alternativa certa após erro no texto (modo Padrão)
 +5
 ALTERNATIVE
 Dourado #D9A93A
-Alternativa errada
+Erro final (texto errado em Só digitar, alternativa errada ou tempo esgotado)
 0
 WRONG
 Vermelho #C94F3D
 
-Pontuação máxima: maxScore = 10 × totalQuestões (100 com 10 questões). Acertos = DIRECT + ALTERNATIVE; erros = WRONG (v2.0, 11.1).
+Pontuação máxima: maxScore = 10 × totalQuestões (ex.: 100 com 10 questões). Acertos = DIRECT + ALTERNATIVE; erros = WRONG (v2.0, 11.1).
 4.2 Níveis
 O nível é definido por pct = pontuação / maxScore, para continuar certo se o número de questões mudar.
 Faixa
@@ -243,7 +265,7 @@ Comparação é com qualquer imagem, não só com a mesma. (Questão em aberto 1
 Proibido: usar localStorage, sessionStorage, IndexedDB, cookies, arquivos ou o store do Electron para isso. Fechar ou recarregar o app zera a sessão, como a v2.0 (24.4) já prevê.
 A sessão não afeta pontuação, nível, medalhas nem o sorteio (v2.0, 8.5).
 7. Tela de jogo
-A tela mantém o arranjo da v2.0 — imagem à esquerda, respostas à direita — e acrescenta pontos numerados, vistas extras, faixa de pontos e indicador de sequência. Referência visual: artboard "Jogo — quiz por imagem" (seção 18).
+A tela mantém o arranjo da v2.0 — imagem à esquerda, respostas à direita — e acrescenta pontos numerados, vistas extras, faixa de pontos, cronômetro opcional de 30 s e indicador de sequência. Referência visual: artboard "Jogo — quiz por imagem" (seção 18).
 7.1 Barra superior (altura 76 px, fundo #1C3528)
 Posição
 Elemento
@@ -261,38 +283,45 @@ Centro-esquerda
 Bloco PONTUAÇÃO
 Pontuação atual
 Centro-esquerda
+Bloco TEMPO (se cronômetro ativo)
+Contador regressivo "30s" (fica vermelho nos últimos 5 segundos)
+Centro-esquerda
 Indicador de sequência
 Pílula fundo #2A1E14, borda #D9772E, foguinho + "×N". Só com sequência ≥ 3
 Direita
 Título da imagem
 Nome da imagem (Baloo 2, 20 px) + subtítulo da vista em #8DC9A0
 
-Os blocos PONTO, RESTANTES e PONTUAÇÃO: fundo rgba(141,201,160,0.1), raio 8 px, rótulo 10 px caixa-alta #8DC9A0, valor Baloo 2 20 px.
+Os blocos PONTO, RESTANTES, PONTUAÇÃO e TEMPO: fundo rgba(141,201,160,0.1), raio 8 px, rótulo 10 px caixa-alta #8DC9A0, valor Baloo 2 20 px.
 7.2 Área da imagem (esquerda, flexível)
 Linha de botões de vista (seção 3.5): pílulas de 38 px de altura. Ativa: fundo #1C3528, texto branco. Inativa: fundo rgba(100,70,40,0.12), texto #5C3D20.
 Caixa da imagem: fundo branco, raio 12 px, sombra 0 6px 20px rgba(0,0,0,0.12). Imagem com object-fit: contain, sem distorção, ocupando o máximo de espaço.
 Marcadores: círculos de 26 px, número 12 px em negrito, borda 2 px (cores na seção 3.2).
-Faixa de pontos abaixo da imagem: 10 quadrados de 30 px, raio 8 px, com o número. Mesmas cores dos marcadores; o atual é fundo #1C3528 com número dourado; os não perguntados são rgba(92,61,32,0.18).
+Faixa de pontos abaixo da imagem: N quadrados de 30 px, raio 8 px, com o número. Mesmas cores dos marcadores; o atual é fundo #1C3528 com número dourado; os não perguntados são rgba(92,61,32,0.18).
 Falha ao carregar: o texto "Falha ao carregar imagem" no lugar da imagem (v2.0, 24.2); a partida continua.
 7.3 Painel de resposta (direita, 400 px, fundo #EFE4D2)
 Pergunta: "Qual estrutura é o ponto N?" (Baloo 2, 26 px, #1C3528), ligada ao campo por <label for>.
-Campo de texto (50 px, raio 10 px, fundo branco) com placeholder "Ex: Fêmur, Crânio...".
-Botão "Confirmar" (50 px, fundo #2C7A54, texto branco). Enter no campo também confirma.
-Campo vazio: mensagem "É necessário fornecer uma resposta" logo abaixo, em #A63A2A.
-Após texto errado: o campo fica desabilitado mostrando o que foi digitado, e surgem as 4 alternativas em grade 2×2 com o texto "Incorreto no texto. Escolha uma alternativa:".
+Nos modos `Padrão` e `Só digitar`:
+- Campo de texto (50 px, raio 10 px, fundo branco) com placeholder "Ex: Fêmur, Crânio...".
+- Botão "Confirmar" (50 px, fundo #2C7A54, texto branco). Enter no campo também confirma.
+- Campo vazio: mensagem "É necessário fornecer uma resposta" logo abaixo, em #A63A2A.
+- Após texto errado no modo `Padrão`: o campo fica desabilitado mostrando o que foi digitado, e surgem as 4 alternativas em grade 2×2 com o texto "Incorreto no texto. Escolha uma alternativa:".
+- Após texto errado no modo `Só digitar`: o campo treme em vermelho e mostra "Era: <nome>" sem exibir alternativas.
+No modo `Só alternativas`:
+- O campo de texto não é exibido; as 4 alternativas em grade 2×2 aparecem imediatamente com o texto "Escolha a alternativa correta:".
 Durante o feedback (seção 7.4), campo, botão e alternativas ficam desabilitados.
 7.4 Feedback e avanço
 Situação
 O que aparece
 Tempo até a próxima questão
-Texto certo
-Campo pisca verde, "+10" sobe, "De primeira!"
-900 ms
-Alternativa certa
+Acerto direto (texto certo ou 1ª tentativa em Só alternativas)
+Campo/botão pisca verde, "+10" sobe, "De primeira!"
+900 ms (texto) / 1.100 ms (alternativa)
+Alternativa certa (2ª tentativa no modo Padrão)
 Alternativa brilha dourado, "+5" sobe
 1.100 ms
-Alternativa errada
-Escolhida treme em vermelho; a correta acende verde; "Era: <nome>"
+Erro final (texto errado em Só digitar, alternativa errada ou tempo esgotado)
+Escolhida/campo treme em vermelho; a correta acende verde; "Era: <nome>"
 2.500 ms
 
 O avanço é automático; não existe botão "Próxima".
@@ -352,11 +381,11 @@ Abaixo dos botões, uma caixa tracejada mostra o texto que será copiado/enviado
 8.6 Para revisar
 Lista as questões WRONG e ALTERNATIVE na ordem das questões.
 Cada linha: quadrado da cor do resultado · nome correto em negrito · detalhe.
-Detalhe: WRONG → "Você errou a alternativa."; ALTERNATIVE → "Acertou só na alternativa."
+Detalhe: WRONG → "Você errou a alternativa." (ou indicação do erro); ALTERNATIVE → "Acertou só na alternativa."
 Sem nada para revisar: uma linha única "Nada para revisar. Mandou bem!".
 8.7 Botões finais (canto inferior direito)
 "Jogar novamente" (fundo #1C3528): abre um modal de confirmação antes de iniciar uma nova partida, evitando que o resultado atual seja apagado acidentalmente.
-Ao confirmar, zera tudo conforme a v2.0 (8.5) e inicia uma nova partida (a partida terminada já foi registrada na sessão ao atingir FINISHED).
+Ao confirmar, zera tudo conforme a v2.0 (8.5) e leva o usuário de volta à tela de **Setup ("Nova partida")** para configurar a próxima partida (a partida terminada já foi registrada na sessão ao atingir FINISHED).
 9. Card compartilhável
 O card existe em dois formatos: Story 9:16, exportado em 1080×1920 px, e Quadrado 1:1, exportado em 1080×1080 px. Ele é desenhado em medidas fixas (540×960 e 600×600) e exportado com escala 2× e 1,8×. Referência: artboards "Card — Story" e "Card — Quadrado".
 9.1 Regras gerais
@@ -414,7 +443,7 @@ Pontuação e números
 Esquerda: número 120 px dourado + "/100 pts" 22 px. Direita: acertos (#8DC9A0), erros (#F08A78), seguidas (foguinho laranja + número branco). Números Baloo 2 30 px, rótulos 11 px branco a 70%
 4
 Faixa
-10 quadrados de 34 px de altura, raio 7, 6 px de espaço
+Quadrados de 34 px de altura, raio 7, 6 px de espaço
 5
 Medalhas
 Mesmos chips da seção 9.2, se houver
@@ -506,11 +535,11 @@ Campo: fundo #DDF1E4 e borda #2F8A5E; "+10" dourado aparece com escala 0,7 → 1
 900 ms
 fx-alt
 Alternativa certa
-Botão escolhido fica #D9A93A com halo 0 0 0 6px rgba(217,169,58,.45); "+5" sobe como no fx-direct
+Botão escolhido fica #D9A93A com halo 0 0 0 6px rgba(217,169,58,.45); "+5" (ou "+10" no modo Só alternativas) sobe como no fx-direct
 1.100 ms
 fx-wrong
-Alternativa errada
-Escolhida #C94F3D e treme (±8 px, 4 oscilações em 400 ms); após 300 ms a correta vira #2F8A5E com texto branco. Sem som, sem perder pontos
+Alternativa errada, texto errado (em Só digitar) ou tempo esgotado
+Escolhida/campo #C94F3D e treme (±8 px, 4 oscilações em 400 ms); após 300 ms a correta vira #2F8A5E com texto branco. Sem som, sem perder pontos
 2.500 ms
 fx-streak
 Sequência chega a 3+
@@ -651,7 +680,7 @@ Nunito
 12.3 Formas
 Raios: 6–8 px (quadrados da faixa, blocos do HUD), 10 px (botões, campos), 12–16 px (painéis, cards), total (pílulas, chips). Botões clicáveis com no mínimo 40 px de altura; os de compartilhar com 46 px. Ícones em SVG de traço, nunca emoji na interface (emoji só no texto de compartilhamento).
 13. Textos da interface (PT / ES)
-Todos os textos novos entram em src/data/locales.ts, no mesmo formato TRANSLATIONS.pt / TRANSLATIONS.es. Textos que já existem lá (menu, modais, "É necessário fornecer uma resposta" etc.) continuam como estão. Nomes e frases de níveis e medalhas estão nas seções 4.2 e 5.1.
+Todos os textos novos entram em src/data/locales.ts, no mesmo formato TRANSLATIONS.pt / TRANSLATIONS.es. Textos que já existem lá (menu, modais, "É necessário fornecer uma resposta" etc.) continuam como estão. Nomes e frases de níveis e medalhas estão nas seções 4.2 e 5.1. Textos da tela de Setup ficam agrupados na chave `setup.*` de `src/data/locales.ts`.
 Chave
 PT
 ES
@@ -664,6 +693,15 @@ RESTANTES
 game.score
 PONTUAÇÃO
 PUNTAJE
+game.timer
+TEMPO
+TIEMPO
+game.timeUp
+Tempo esgotado!
+¡Tiempo agotado!
+game.chooseAlt
+Escolha a alternativa correta:
+Elige la alternativa correcta:
 game.questionPrompt
 Qual estrutura é o ponto {n}?
 ¿Qué estructura es el punto {n}?
@@ -805,11 +843,14 @@ export type ExtraView = {
   y?: number;             // 0..1, obrigatório para "angulo"
 };
 
+export type Region = "axial" | "toracico" | "pelvico";
+
 export type Marker = {
   name: { pt: string; es: string };
   aceita?: string[];
   x: number;              // 0..1 na imagem principal
   y: number;
+  region?: Region;        // Região do esqueleto (classificada via getMarkerRegion)
   vistas?: ExtraView[];   // NOVO: outro ângulo / osso isolado deste ponto
 };
 
@@ -818,7 +859,7 @@ export type AnatomyImage = {
   titulo: { pt: string; es: string };
   tituloCurto: { pt: string; es: string }; // NOVO: "Esqueleto do cão · lateral"
   animal: "dog" | "cat";                   // NOVO
-  especie: string;                         // nome científico (existente)
+  especie: string;                         // nome científico (Canis lupus familiaris / Felis catus)
   src: string;
   fonte: string;
   markers: Marker[];
@@ -826,6 +867,7 @@ export type AnatomyImage = {
 14.2 Estado da partida
 export type QuestionResult = "DIRECT" | "ALTERNATIVE" | "WRONG";
 export type QuestionState = "AWAITING_TEXT_ANSWER" | "SHOWING_ALTERNATIVES" | "ANSWERED";
+export type AnswerMode = "standard" | "alternatives" | "typing";
 
 export type Question = {
   numero: number;                 // 1..N, ordem na partida
@@ -842,7 +884,7 @@ export type Game = {
   imageId: string;
   questions: Question[];
   currentIndex: number;
-  status: "IN_PROGRESS" | "FINISHED";
+  status: "SETUP" | "IN_PROGRESS" | "FINISHED";
   finishedAt?: Date;
 };
 
@@ -861,7 +903,7 @@ Entrada → saída
 normalize(s)
 texto → texto normalizado (seção 3.7)
 buildGame(image, allImages, rng)
-→ Game com até 10 questões e alternativas (3.4, 3.6)
+→ Game com questões sorteadas e alternativas (3.4, 3.6)
 isCorrectText(question, text)
 → boolean
 scoreOf(results)
@@ -901,8 +943,10 @@ Baloo 2 e Nunito
 15. Casos de borda
 Situação
 Comportamento esperado
-Imagem com menos de 10 nomes distintos
-Partida com esse número de questões; máximo 10 × N; níveis por porcentagem; faixa do card com N quadrados
+Regiões selecionadas com menos estruturas distintas que uma das opções de quantidade (ex.: 20)
+Botões de quantidade que excedem o total disponível ficam desabilitados no Setup; a opção "Tudo" sorteia todas as estruturas únicas disponíveis nas regiões marcadas
+Partida com N questões (5, 10, 15, 20 ou Tudo)
+Pontuação máxima = 10 × N; níveis por porcentagem; faixa de pontos ajustada para N quadrados
 Imagem com menos de 4 nomes distintos em todo o cadastro
 Não dá para montar alternativas: validateImage acusa erro e a imagem não entra no sorteio (v2.0, 24.3)
 Marcador com x ou y fora de 0..1, nome vazio ou src vazio
@@ -917,7 +961,7 @@ Duplo clique em Confirmar ou numa alternativa
 Só a primeira resposta conta; controles travam durante o feedback
 Clicar em "Menu" durante o feedback
 Abre o modal da v2.0; se confirmar, a partida é abandonada e não entra na sessão
-Trocar o idioma durante a partida
+Trocar o idioma durante a partida ou no Setup
 Textos, alternativas e card mudam de idioma na hora; resultados não mudam
 Janela redimensionada
 Imagem e marcadores se reajustam (porcentagem); o card não muda, pois tem medidas fixas
@@ -936,19 +980,20 @@ Partida e sessão somem, sem aviso extra (v2.0, 24.4)
 
 16. Critérios de aceite
 A gamificação está pronta quando todos os critérios abaixo passam, junto com os AC da v2.0 que continuam valendo.
-16.1 Quiz por imagem
-AC-G1 DADO que o usuário clica em Jogar, ENTÃO uma imagem é sorteada e mostra até 10 pontos numerados, com o ponto 1 destacado e a pergunta "Qual estrutura é o ponto 1?".
-AC-G2 DADO que uma questão é respondida, ENTÃO o marcador e o quadrado daquele número mudam para verde (texto certo), dourado (alternativa certa) ou vermelho (erro).
-AC-G3 DADO um ponto com vista "angulo", ENTÃO o botão "Outro ângulo" aparece e mostra a outra imagem com só aquele número marcado; DADO um ponto sem essa vista, ENTÃO o botão não aparece.
+16.1 Setup e Quiz por imagem
+AC-G0 DADO que o usuário clica em "Jogar" no Menu Principal ou confirma "Jogar novamente" na tela de resultado, ENTÃO a tela de Setup ("Nova partida") é exibida permitindo escolher o animal (Cão ou Gato), regiões do esqueleto (Axial, Membro torácico, Membro pélvico), número de questões (5, 10, 15, 20, Tudo), modo de resposta (Padrão, Só alternativas, Só digitar) e cronômetro de 30 s.
+AC-G1 DADO que o usuário clica em "Começar partida" na tela de Setup, ENTÃO as questões são sorteadas conforme a configuração escolhida (garantindo ao menos 1 questão por região marcada), com o ponto 1 destacado e a pergunta "Qual estrutura é o ponto 1?".
+AC-G2 DADO que uma questão é respondida, ENTÃO o marcador e o quadrado daquele número mudam para verde (acerto de 10 pts), dourado (alternativa certa na 2ª chance) ou vermelho (erro ou tempo esgotado).
+AC-G3 DADO um ponto com vista em outro ângulo, ENTÃO o botão da vista correspondente permite alternar a imagem mantendo o destaque na estrutura perguntada.
 AC-G4 DADO um ponto com vista "isolado", QUANDO o usuário clica em "Osso isolado", ENTÃO aparece a foto do osso sem nenhum nome.
-AC-G5 DADO que o usuário trocou de vista, QUANDO a próxima questão começa, ENTÃO a vista volta a ser "Vista geral" e a pontuação não mudou por causa da troca.
-AC-G6 DADO um texto errado, ENTÃO aparecem 4 alternativas sem nomes repetidos, com exatamente uma correta, e os distratores vêm primeiro de outros pontos da mesma imagem.
-AC-G7 DADO um nome repetido na imagem (ex.: Falanges), ENTÃO ele aparece no máximo uma vez por partida.
+AC-G5 DADO que o usuário trocou de vista, QUANDO a próxima questão começa, ENTÃO a vista inicial da nova questão é exibida e a pontuação não mudou por causa da troca.
+AC-G6 DADO um texto errado no modo Padrão (ou o início da questão no modo Só alternativas), ENTÃO aparecem 4 alternativas sem nomes repetidos, com exatamente uma correta, e os distratores vêm primeiro de outros pontos da mesma imagem/espécie.
+AC-G7 DADO um nome repetido na espécie (ex.: Falanges em vistas diferentes), ENTÃO ele é sorteado no máximo uma vez por partida.
 16.2 Pontuação, sequência, nível e medalhas
-AC-G8 A pontuação continua 10 / 5 / 0 e nunca muda por sequência ou medalha.
+AC-G8 A pontuação máxima por questão é sempre 10 pts (10 / 5 / 0 no modo Padrão; 10 / 0 nos modos Só alternativas e Só digitar) e nunca muda por sequência ou medalha.
 AC-G9 DADA uma sequência atual de 3 ou mais, ENTÃO a pílula laranja com foguinho e "×N" aparece na barra superior; DADO um erro, ENTÃO ela some.
 AC-G10 DADAS as pontuações 25, 50, 70, 85 e 100 de 100, ENTÃO os níveis são Filhote, Faro Afiado, Monitoria, Anatomista e Mestre dos Ossos.
-AC-G11 DADAS 10 respostas de primeira, ENTÃO as medalhas são Gabarito e Em chamas, e não Invicto nem Reta final.
+AC-G11 DADAS 10 respostas DIRECT, ENTÃO as medalhas são Gabarito e Em chamas, e não Invicto nem Reta final.
 AC-G12 DADOS os resultados D D A D D D D D W D, ENTÃO a única medalha é Em chamas e a melhor sequência é 8.
 16.3 Resultado e sessão
 AC-G13 DADA a última resposta, ENTÃO após o feedback abre o resultado com pontuação final, acertos, erros e barra verde/vermelha (cumpre AC-2.9 e AC-2.10).
@@ -956,7 +1001,7 @@ AC-G14 DADA a primeira partida da sessão, ENTÃO não aparece "vs. partida ante
 AC-G15 DADO que o app é recarregado, ENTÃO a próxima partida não mostra comparação (nada foi salvo).
 AC-G16 Em nenhum momento o app escreve em localStorage, sessionStorage, IndexedDB ou cookies (verificável pelo DevTools).
 AC-G17 DADA uma partida com erros, ENTÃO "Para revisar" lista as estruturas erradas e as acertadas na alternativa.
-AC-G18 Clicar em "Jogar novamente" exibe um modal de confirmação antes de descartar o resultado atual; ao confirmar, inicia uma nova partida com novo sorteio e tudo zerado.
+AC-G18 Clicar em "Jogar novamente" exibe um modal de confirmação antes de descartar o resultado atual; ao confirmar, retorna para a tela de Setup ("Nova partida").
 16.4 Card e compartilhamento
 AC-G19 A pré-visualização e o PNG baixado são visualmente idênticos e têm 1080×1920 (Story) ou 1080×1080 (Quadrado).
 AC-G20 O card Story mostra: marca, nome da imagem, selo e nome do nível, pontuação, anel de acerto, números de primeira / na alternativa / erros, faixa colorida, medalhas (se houver), melhor sequência com foguinho, comparação (se houver), convite e data/hora.
@@ -990,8 +1035,8 @@ Qual link oficial vai no card e no texto?
 Omitir até existir
 Equipe
 17.2
-Haverá tela para escolher a imagem antes de jogar?
-Não nesta versão; sorteio + "Outra imagem"
+Haverá tela para escolher a configuração antes de jogar?
+Resolvido: tela de Setup ("Nova partida") implementada com escolha de sistema, animal, regiões, quantidade, modo e cronômetro
 Equipe
 17.3
 Um ponto pode ter mais de uma vista do mesmo tipo?
@@ -1006,82 +1051,10 @@ Nomes dos níveis em espanhol soam naturais no Chile?
 Validar com os estudantes da UST
 Especialistas de domínio
 17.6
-Ainda não existem imagens de gato nem fotos de ossos isolados no projeto
-Reportar como bloqueio de conteúdo, sem placeholders (v2.0, 21)
+Imagens de esqueleto de gato (`Felis catus`)
+Resolvido: 3 imagens de gato mapeadas e integradas ao jogo e à galeria
 Equipe
 17.7
 Quais imagens extras correspondem a quais pontos (coordenadas via /annotate)?
 Cadastrar junto com as fotos
 Equipe
-
-18. Imagens de referência
-As imagens abaixo são a referência visual oficial. Em caso de conflito entre imagem e texto, vale o texto deste documento. Anexe cada imagem logo abaixo do seu título.
-18.1 Card — Story 9:16
-
-18.2 Card — Quadrado 1:1
-
-18.3 Tela de jogo — quiz por imagem (vista geral, outro ângulo, osso isolado)
-
-18.4 Tela de resultado + compartilhar
-
-18.5 Efeitos visuais
-Observação: nos mockups, os números (85 pontos, "+15", 21 set 2026, 18:42) são exemplos. A tela "Meu progresso" que aparece no canvas foi descartada e não deve ser implementada.
-19. Prompt pronto para implementação
-Copie o bloco abaixo para o agente de código (ex.: Claude Code), junto com este documento exportado, a Especificação 2.0 e as imagens da seção 18.
-Você vai implementar a gamificação do Zootomia no repositório existente
-(https://github.com/elc1074/zootomia — Next.js + React + TypeScript).
-
-DOCUMENTOS (leia inteiros antes de escrever código)
-1. "Zootomia — Software Specification v2.0" (base).
-2. "Zootomia — Especificação da Gamificação v1.0" (este documento). Onde divergir
-   da v2.0, vale a Gamificação (seção 2 lista as mudanças).
-3. Imagens de referência (seção 18). Texto vence imagem em caso de conflito.
-
-REGRAS INEGOCIÁVEIS
-- Continue o projeto existente. Não recrie o app, não troque a arquitetura.
-- Nada de persistência: proibido localStorage, sessionStorage, IndexedDB,
-  cookies ou arquivos (exceto o PNG que o usuário baixa). A sessão vive só em
-  memória (SessionContext).
-- Pontuação 10 / 5 / 0 não muda. Sequência e medalhas são só visuais.
-- Dependência nova permitida: apenas html-to-image. Nada de libs de animação,
-  confete ou UI.
-- Sequência usa sempre laranja #D9772E com foguinho, nunca dourado.
-- Todo texto novo em PT e ES via src/data/locales.ts e LanguageContext.
-- Nenhum componente importa APIs do Electron; use getSharePlatform().
-- Fontes Baloo 2 e Nunito empacotadas localmente (offline); remova o @import
-  do Google Fonts.
-- Não implemente a tela "Meu progresso" nem nada da seção 17 "Fora do escopo".
-- Não invente comportamento. Se algo não estiver especificado, pare e liste
-  como questão em aberto.
-
-ORDEM DE TRABALHO (um commit por etapa)
-1. Leia src/app/game/page.tsx, src/data/anatomy.ts, src/data/locales.ts,
-   src/app/layout.tsx, src/app/page.tsx e src/app/gallery/page.tsx. Resuma o
-   que existe e o que muda, antes de editar.
-2. Tokens (src/styles/tokens.ts) e fontes locais (public/fonts).
-3. Tipos e cadastro (seção 14.1), mantendo os dados atuais funcionando.
-4. Funções puras em src/game/ (seção 14.3) com testes unitários cobrindo
-   AC-G6, AC-G7, AC-G10, AC-G11 e AC-G12, com rng injetável.
-5. SessionContext no layout (seção 6).
-6. Tela de jogo (seções 3 e 7): pontos numerados, vistas, faixa, HUD,
-   feedback e tempos.
-7. Tela de resultado (seção 8), sem o card ainda.
-8. Cards Story e Quadrado (seção 9) + pré-visualização.
-9. Camada de plataforma e compartilhamento (seção 10).
-10. Efeitos (seção 11), incluindo prefers-reduced-motion.
-11. Textos PT/ES (seção 13).
-12. Galeria: aceitar /gallery?img=<id> abrindo o visualizador naquela imagem.
-
-VALIDAÇÃO FINAL
-- Passe por todos os critérios AC-G1 a AC-G30 e pelos AC da v2.0 que
-  continuam valendo. Para cada um, diga: passou / falhou / não verificável
-  e como verificou.
-- Rode lint, typecheck e testes sem erros.
-- Confirme no DevTools que nada foi gravado em storage.
-- Baixe um PNG de cada formato e confira 1080×1920 e 1080×1080.
-
-RELATÓRIO DE ENTREGA
-- Lista de arquivos criados/alterados.
-- Decisões tomadas e onde a especificação as sustenta.
-- Bloqueios de conteúdo (ex.: faltam imagens de gato e de ossos isolados).
-- Questões em aberto encontradas.

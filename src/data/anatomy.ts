@@ -2,23 +2,89 @@
 // x e y vão de 0 a 1 = fração da largura/altura da imagem (independente do tamanho na tela).
 // Para gerar esses valores sem chutar, use a rota /annotate.
 
+export type Region = "axial" | "toracico" | "pelvico";
+
 export type Marker = {
   name: { pt: string; es: string }; // resposta canônica, ex. "Fêmur"
   aceita?: string[]; // outras grafias aceitas no campo de texto, ex. ["femur", "os femoris"]
   x: number;
   y: number;
+  regiao?: Region;
 };
 
 export type AnatomyImage = {
   id: string;
   titulo: { pt: string; es: string }; // aparece no cabeçalho do jogo
   especie: string; 
+  sistema?: "esqueletico" | "nervoso";
   src: string; // caminho dentro de /public
   width: number; // dimensões reais do arquivo, em px — usadas para manter a proporção
   height: number; // da imagem e alinhar os marcadores em qualquer tamanho de tela/zoom
   fonte: string; // legenda / atlas de origem, para atribuição
   markers: Marker[];
 };
+
+const AXIAL_KEYWORDS = [
+  "vertebra",
+  "sacro",
+  "costela",
+  "costilla",
+  "arco costal",
+  "esterno",
+  "esternon",
+  "atlas",
+  "axis",
+  "abertura toracica",
+  "manubrio",
+  "crista sacral",
+  "cresta sacra",
+  "cranio",
+  "craneo",
+];
+
+const TORACICO_KEYWORDS = [
+  "escapula",
+  "acromio",
+  "acromion",
+  "umero",
+  "humero",
+  "deltoidea",
+  "braquial",
+  "radio",
+  "ulna",
+  "cubito",
+  "olecrano",
+  "olecranon",
+  "carpo",
+  "carpal",
+  "carpiano",
+  "metacarpiano",
+  "supraglenoidal",
+  "supraglenoideo",
+  "supracondilar",
+];
+
+export function getMarkerRegion(marker: Marker, imageId?: string): Region {
+  if (marker.regiao) return marker.regiao;
+  const norm = marker.name.pt
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (norm === "falanges" || norm === "falange distal" || norm === "falange media" || norm === "falange proximal") {
+    if (imageId === "cao-membro-toracico-detalhe" && marker.x < 0.7) return "toracico";
+    if (imageId === "gato-esqueleto-vista-cranial") return "toracico";
+    if (marker.x < 0.45 && imageId !== "cao-pelve-membro-pelvico-detalhe" && imageId !== "gato-esqueleto-vista-caudal") {
+      return "toracico";
+    }
+    return "pelvico";
+  }
+
+  if (AXIAL_KEYWORDS.some((kw) => norm.includes(kw))) return "axial";
+  if (TORACICO_KEYWORDS.some((kw) => norm.includes(kw))) return "toracico";
+  return "pelvico";
+}
 
 export const IMAGES: AnatomyImage[] = [
   {
@@ -169,12 +235,6 @@ export const IMAGES: AnatomyImage[] = [
       { name: { pt: "Vértebras caudais", es: "Vértebras caudales" }, aceita: ["vertebras caudais", "vertebras caudales", "caudais"], x: 0.951, y: 0.486 },
     ],
   },
-];
-
-// Imagens já mapeadas e validadas, mas que AINDA NÃO entram no jogo nem na galeria
-// (ambos leem só IMAGES). Para liberar uma delas, mova o objeto para o array IMAGES —
-// uma espécie nova faz o seletor de animal aparecer automaticamente no jogo.
-export const IMAGES_RESERVADAS: AnatomyImage[] = [
   {
     id: "gato-esqueleto-geral-lateral",
     titulo: { pt: "Esqueleto do gato — vista lateral", es: "Esqueleto del gato — vista lateral" },
@@ -263,3 +323,5 @@ export const IMAGES_RESERVADAS: AnatomyImage[] = [
     ],
   },
 ];
+
+export const IMAGES_RESERVADAS: AnatomyImage[] = [];

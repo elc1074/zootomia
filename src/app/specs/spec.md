@@ -14,7 +14,7 @@ continue the existing Zootomia project instead of creating a new project;
 preserve the existing React/Next.js architecture unless this specification explicitly requires a change;
 use TypeScript/JavaScript;
 preserve the existing visual identity when this specification does not explicitly require a visual change;
-support bilingual interfaces (Portuguese and Spanish) via a global language selector in the Main Menu;
+support bilingual interfaces (Portuguese and Spanish) via a global language selector in the Main Menu and Setup screen;
 reuse existing components, styles, assets, and project conventions when they are compatible with this specification;
 avoid introducing functionality that is not specified;
 avoid removing existing functionality unless this specification explicitly requires its removal;
@@ -40,18 +40,14 @@ The application will eventually be packaged using Electron. Features that intera
 3.3 Desktop target
 The application is intended for desktop use. Mobile-specific layouts and interactions are not part of the current scope. The interface must remain usable when the desktop application window is resized, unless the existing project explicitly establishes a fixed-window behavior.
 4. Global Navigation
-The application contains four primary screens:
-Main Menu
-Game
-Gallery
-About
+The application contains four primary routes (`Main Menu`, `Game` — which includes the `Setup`, `In Progress`, and `Finished` states — `Gallery`, and `About`):
 4.1 Navigation map
 Current Screen
 User Action
 Destination
 Main Menu
 Click "Jogar"
-Game
+Game (Setup screen — "Nova partida")
 Main Menu
 Click "Galeria"
 Gallery
@@ -61,9 +57,18 @@ About
 Main Menu
 Click "Sair" and confirm
 Application exit
-Game
+Game (Setup)
+Click "Começar partida"
+Game (In Progress)
+Game (Setup)
 Return to main menu
+Main Menu (no confirmation required)
+Game (In Progress / Finished)
+Return to main menu (and confirm)
 Main Menu
+Game (Finished)
+Click "Jogar novamente" (and confirm)
+Game (Setup screen — "Nova partida")
 Gallery
 Return to main menu
 Main Menu
@@ -72,7 +77,7 @@ Return to main menu
 Main Menu
 
 4.2 Navigation restrictions
-The Game screen has special navigation behavior. Leaving an active game or the finished result screen requires user confirmation because the current game progress or displayed result will be discarded. Starting a new game from the result screen ("Jogar novamente") also requires confirmation.
+The Game screen has special navigation behavior. Leaving an active game (`IN_PROGRESS`) or the finished result screen (`FINISHED`) requires user confirmation because the current game progress or displayed result will be discarded. Starting a new game from the result screen ("Jogar novamente") also requires confirmation before returning to the Setup screen (`SETUP`). Returning to the Main Menu from the Setup screen (`SETUP`) does not require confirmation because no match has started yet.
 5. FEATURE 1 — Main Menu
 5.1 Purpose
 The Main Menu is the initial screen of the game and acts as the primary navigation interface. The screen must provide four actions:
@@ -105,8 +110,7 @@ the application language must switch between Portuguese and Spanish;
 the change must reflect immediately across the entire application interface and content.
 Jogar
 When the user clicks Jogar:
-a new game must be started;
-the user must be taken to the Game screen.
+the user must be taken to the Game route in the Setup state ("Nova partida") to configure and start a new game.
 Galeria
 When the user clicks Galeria:
 the user must be taken to the Gallery screen.
@@ -141,7 +145,7 @@ Sair
 AC-3. Game navigation
 GIVEN the user is on the Main Menu
 WHEN the user clicks "Jogar"
-THEN the Game screen must be displayed.
+THEN the Game Setup screen ("Nova partida") must be displayed.
 AC-4. Gallery navigation
 GIVEN the user is on the Main Menu
 WHEN the user clicks "Galeria"
@@ -163,35 +167,60 @@ AC-8. Confirm exit
 GIVEN the exit confirmation modal is displayed
 WHEN the user confirms the action
 THEN the application's exit mechanism must be invoked.
-7. FEATURE 2 — Game
+7. FEATURE 2 — Game & Match Setup
 7.1 Purpose
 The Game screen is the primary interactive component of Zootomia.
-The player receives an image of an anatomical model belonging to a dog or cat and must identify the anatomical structure represented by the image. The game primarily uses anatomical bone models.
+Before each match begins (whether navigating from the Main Menu or clicking "Jogar novamente" on the Result screen), the player visits the **Setup screen ("Nova partida")** to configure the match parameters. During the match, the player receives an image of an anatomical model belonging to the chosen animal (dog or cat) and must identify the highlighted anatomical structure.
+7.1.1 Setup Screen ("Nova partida")
+The Setup screen consists of a configuration panel on the left and a live match summary sidebar ("Resumo da partida") on the right, plus a header with a `< Menu` button, title "Nova partida", and PT/ES language toggle:
+1. **Sistema (System):**
+   - `Esquelético` (active — "Ossos e relevos")
+   - `Nervoso` (disabled / coming soon — "Nervos periféricos")
+2. **Animal (Species):**
+   - `Cão` (`Canis lupus familiaris`) — displays total images and structures available.
+   - `Gato` (`Felis catus`) — displays total images and structures available.
+3. **Regiões do Esqueleto (Skeleton Regions — at least one required, plus a "Todas" toggle button):**
+   - `Esqueleto axial` ("Crânio, coluna, costelas")
+   - `Membro torácico` ("Escápula, úmero, rádio, carpo")
+   - `Membro pélvico` ("Coxal, fêmur, tíbia, tarso")
+   - At least one region must remain selected at all times. When starting a match, the question sampling guarantees at least one structure from each selected region (when question count ≥ number of selected regions), and draws the remaining questions randomly from the combined pool of selected regions.
+4. **Quantas Questões (Question Count):**
+   - Options: `5`, `10` (default), `15`, `20`, or `Tudo` (all unique structures available in the selected regions for the chosen animal).
+   - Options exceeding the number of available unique structures in the selected regions are disabled.
+5. **Como Responder (Answer Mode):**
+   - `Padrão` ("Digitar e, se errar, 4 alternativas" — `10 / 5 pts`): starts with text input; an incorrect text answer reveals 4 multiple-choice options.
+   - `Só alternativas` ("Vai direto para as 4 opções" — `10 pts`): skips text input and presents the 4 multiple-choice options immediately.
+   - `Só digitar` ("Sem alternativas, sem segunda chance" — `10 pts`): presents only the text input; an incorrect text answer ends the question immediately as wrong (0 pts).
+6. **Extra — Cronômetro de 30 s por questão (30s Timer per question):**
+   - Toggle (`Ligado` / `Desligado`, default `Desligado`).
+   - When enabled, each question has a 30-second countdown timer. If the timer reaches 0 before a final answer is submitted (whether awaiting text or choosing an alternative), the question immediately counts as `WRONG` (0 pts), reveals the correct structure name for 2.5 seconds, and advances automatically.
+7. **Resumo da Partida (Match Summary Sidebar):**
+   - Displays selected System, Animal, Regions, number of structures in the draw pool ("No sorteio"), Questions count, Timer status, estimated questions per region ("Questões por região"), Maximum Score (`10 × questões`), and the `"Começar partida →"` action button.
+
 7.2 Game flow
-Each question follows this general sequence:
-Display an anatomical image.
-Allow the player to enter an answer using a text input.
-Evaluate the textual answer.
-If the textual answer is correct:
-award 10 points;
-mark the question as correctly answered;
-continue to the next question.
-If the textual answer is incorrect:
-display four answer alternatives;
-exactly one alternative must be correct;
-allow the player to select one alternative.
-If the selected alternative is correct:
-award 5 points;
-mark the question as correctly answered.
-If the selected alternative is incorrect:
-award 0 points;
-mark the question as incorrectly answered.
-Continue until all questions have been answered.
-Display the final result.
+Each question follows a sequence determined by the selected Answer Mode:
+- **Standard mode (`Padrão`):**
+  1. Display an anatomical image with the current structure pin highlighted.
+  2. Allow the player to enter an answer using a text input.
+  3. If the textual answer is correct: award 10 points (`DIRECT`), mark as correct, and advance to the next question.
+  4. If the textual answer is incorrect: display four answer alternatives (one correct, three distractors).
+  5. If the selected alternative is correct: award 5 points (`ALTERNATIVE`), mark as correct, and advance.
+  6. If the selected alternative is incorrect: award 0 points (`WRONG`), mark as incorrect, show the correct answer, and advance.
+- **Alternatives-only mode (`Só alternativas`):**
+  1. Display the anatomical image and immediately show four answer alternatives.
+  2. If the selected alternative is correct: award 10 points (`DIRECT`), mark as correct, and advance.
+  3. If the selected alternative is incorrect: award 0 points (`WRONG`), mark as incorrect, show the correct answer, and advance.
+- **Typing-only mode (`Só digitar`):**
+  1. Display the anatomical image and allow the player to enter an answer using the text input.
+  2. If the textual answer is correct: award 10 points (`DIRECT`), mark as correct, and advance.
+  3. If the textual answer is incorrect: award 0 points (`WRONG`), mark as incorrect, show the correct answer (without offering alternatives), and advance.
+- **Timer expiration (when 30s Timer is enabled):**
+  - If the 30-second countdown expires on any question before a final answer is recorded, award 0 points (`WRONG`), mark as incorrect, display the correct answer for 2.5 seconds, and advance.
+Continue until all questions have been answered, then display the final result.
 7.3 Text answer
-The player must initially be presented with a text input field. The player may submit one textual answer for each question.
+In `Padrão` and `Só digitar` modes, the player is presented with a text input field and may submit one textual answer per question.
 Text-answer attempt limit
-The specification defines the first textual response as the initial attempt. After an incorrect textual answer, the player proceeds to the alternative-answer stage. The player must not receive additional textual attempts for the same question unless this specification is changed.
+The first textual response is the initial attempt. After an incorrect textual answer, the player either proceeds to the alternative-answer stage (`Padrão`) or finishes the question as incorrect (`Só digitar`).
 7.4 Text answer evaluation
 The system must compare the player's textual answer with the correct answer associated with the question. The following normalization rules apply:
 leading and trailing whitespace must not affect the result;
@@ -202,24 +231,24 @@ Fêmur → correct;
 fêmur → correct;
 Femur → correct.
 7.5 Alternative answers
-After an incorrect textual response, exactly four alternatives must be displayed.
+In `Padrão` mode (after an incorrect textual response) or immediately in `Só alternativas` mode, exactly four alternatives must be displayed.
 The alternatives must contain:
 one correct answer;
 three incorrect answers.
 The user may select exactly one alternative. After an alternative is selected, the question is considered answered. The alternatives must not allow multiple selections.
 Alternative ordering
-The order of alternatives must be randomized for each game.
+The order of alternatives must be randomized for each question.
 Alternative generation
-The three incorrect alternatives (distractors) must be generated dynamically by randomly selecting the names of other anatomical structures mapped in the same image currently being played.
+The three incorrect alternatives (distractors) must be generated dynamically by randomly selecting the names of other anatomical structures mapped in the same image currently being played (or same species if needed).
 8. Game Scoring
 8.1 Initial score
-A new game starts with 0 points
+A new game starts with 0 points. Maximum score is always `10 × totalQuestions`.
 8.2 Direct answer
-A correct textual answer awards +10 points
-8.3 Alternative answer
-A correct alternative answer awards +5 points
-8.4 Incorrect answer
-An incorrect alternative answer awards +0 points
+A correct textual answer (in `Padrão` or `Só digitar` mode) or a correct first-try choice in `Só alternativas` mode awards +10 points.
+8.3 Alternative answer (second chance)
+A correct alternative answer after an incorrect text attempt in `Padrão` mode awards +5 points.
+8.4 Incorrect answer or timeout
+An incorrect final answer (or 30s timer expiration) awards +0 points.
 The score must never decrease because of an incorrect answer.
 8.5 New game
 Starting a new game resets:
@@ -242,8 +271,9 @@ alternatives when applicable.
 The upper area of the game interface must display:
 current question number;
 number of questions remaining;
-current score.
-The implementation may choose the exact visual arrangement as long as all three pieces of information are clearly visible.
+current score;
+30-second countdown timer (when the timer option is enabled in Setup).
+The implementation may choose the exact visual arrangement as long as all pieces of information are clearly visible.
 9.4 Unnecessary text
 The Game screen must not contain explanatory text that is not necessary for the game interaction. The interface should prioritize:
 question/game status;
@@ -264,6 +294,7 @@ AWAITING_TEXT_ANSWER
 SHOWING_ALTERNATIVES
 ANSWERED
 The game itself must have at least these conceptual states:
+SETUP
 IN_PROGRESS
 FINISHED
 11. Game Result
@@ -301,7 +332,8 @@ its progress must not be saved;
 the user must be taken to the Main Menu.
 12.2 Finished game
 If the game has already finished:
-clicking any return-to-menu control or the "Jogar novamente" button must also display a confirmation modal before discarding the current result screen.
+clicking any return-to-menu control must display a confirmation modal before discarding the current result screen and returning to the Main Menu;
+clicking the "Jogar novamente" button must display a confirmation modal before discarding the current result screen and returning to the Setup screen ("Nova partida").
 13. Game Persistence
 Game progress must not be persisted in this version.
 When a game is abandoned:
@@ -315,8 +347,9 @@ a unique identifier;
 an anatomical image;
 the correct anatomical answer;
 a species association;
+an anatomical region classification (`axial`, `toracico`, or `pelvico`);
 sufficient information to generate/display the alternative answers.
-The data is centralized in a TypeScript database (`src/data/anatomy.ts`), which exports an array of `AnatomyImage` objects.
+The data is centralized in a TypeScript database (`src/data/anatomy.ts`), which exports an array of `AnatomyImage` objects for both dog (`Canis lupus familiaris`) and cat (`Felis catus`).
 Conceptually:
 AnatomyImage
 ├── id
@@ -325,25 +358,32 @@ AnatomyImage
 ├── src
 ├── fonte
 └── markers (Array of Marker)
-    ├── name (canonical answer)
+    ├── name (canonical answer in PT and ES)
     ├── aceita (array of synonyms/alternate spellings)
+    ├── region (optional explicit override; classified into "axial" | "toracico" | "pelvico")
     ├── x
     └── y
 Text answers should be evaluated by checking both the `name` and the `aceita` list.
 15. Number and Selection of Questions
-The game groups questions by species rather than a single image. The interface must provide a Species Selector allowing the user to select an animal model (e.g. Canis lupus familiaris). The game displays questions for all mapped anatomical structures belonging to the selected species, randomly ordered. Changing the species resets the game progress and score. 
-Multi-view support: If the same anatomical structure is mapped across multiple images of the selected species (e.g., dorsal view and lateral view), the game must provide UI controls allowing the player to toggle between the different available viewing angles for that structure to aid identification.
+Before starting a match, the player configures the match on the Setup screen ("Nova partida"):
+- **Animal selection:** Dog (`Canis lupus familiaris`) or Cat (`Felis catus`).
+- **Region filtering:** One or more skeleton regions (`Esqueleto axial`, `Membro torácico`, `Membro pélvico`). The draw guarantees at least one structure from each selected region (when question count permits) and randomly draws the remainder without repeating normalized structure names.
+- **Question count:** `5`, `10`, `15`, `20`, or `Tudo` (all unique structures in the selected regions for the chosen species).
+- **Multi-view support:** If the same anatomical structure is mapped across multiple images of the selected species (e.g., cranial, caudal, dorsal, or lateral views), the game provides UI controls allowing the player to toggle between the different available viewing angles for that structure to aid identification.
 16. Feature 2 — Acceptance Criteria
+AC-2.0 Match Setup screen
+GIVEN the player clicks "Jogar" on the Main Menu (or confirms "Jogar novamente" on the Result screen)
+THEN the Setup screen ("Nova partida") must be displayed allowing the player to select the animal (`Cão` or `Gato`), skeleton regions (`Esqueleto axial`, `Membro torácico`, `Membro pélvico`), number of questions (`5`, `10`, `15`, `20`, `Tudo`), answer mode (`Padrão`, `Só alternativas`, `Só digitar`), and 30-second timer (`Ligado`/`Desligado`).
 AC-2.1 Initial question
-GIVEN the player starts a new game
-THEN the first question must be displayed
+GIVEN the player clicks "Começar partida" on the Setup screen
+THEN the first question must be displayed according to the chosen configuration
 AND the score must be 0
 AND the correct/incorrect counters must be 0.
 AC-2.2 Question image
 GIVEN a question is active
 THEN its anatomical image must be displayed on the left side of the game interface.
 AC-2.3 Text response
-GIVEN a question is active
+GIVEN a question is active in `Padrão` or `Só digitar` mode
 THEN the player must be able to enter an answer using the text field.
 AC-2.4 Correct text answer
 GIVEN the player submits a correct textual answer
@@ -352,23 +392,25 @@ AND the question must be counted as correct
 AND the next question must become active.
 AC-2.5 Incorrect text answer
 GIVEN the player submits an incorrect textual answer
-THEN the system must display four alternatives
-AND exactly one alternative must be correct.
+WHEN the mode is `Padrão`
+THEN the system must display four alternatives with exactly one correct alternative;
+WHEN the mode is `Só digitar`
+THEN the question must be counted as incorrect (0 points), display the correct answer, and advance to the next question.
 AC-2.6 Correct alternative
 GIVEN four alternatives are displayed
 WHEN the player selects the correct alternative
-THEN the player's score must increase by 5 points
+THEN the player's score must increase by 5 points in `Padrão` mode (or 10 points in `Só alternativas` mode)
 AND the question must be counted as correct
 AND the next question must become active.
-AC-2.7 Incorrect alternative
-GIVEN four alternatives are displayed
-WHEN the player selects an incorrect alternative
+AC-2.7 Incorrect alternative or timer expiration
+GIVEN a question is active
+WHEN the player selects an incorrect alternative OR the 30-second timer expires
 THEN the player's score must not increase
 AND the question must be counted as incorrect
-AND the next question must become active.
+AND the correct answer must be shown for 2.5 seconds before the next question becomes active.
 AC-2.8 Game status
 GIVEN a game is in progress
-THEN the interface must display the current question number, questions remaining, and current score.
+THEN the interface must display the current question number, questions remaining, current score, and (if enabled) the 30-second countdown timer.
 AC-2.9 Final result
 GIVEN the final question has been answered
 THEN the game must display the final score, correct answers, incorrect answers, and a chart representing the results.
@@ -393,7 +435,7 @@ AND the Main Menu must be displayed.
 AC-2.14 Return or restart after game completion
 GIVEN the game has finished
 WHEN the player clicks the return-to-menu control or "Jogar novamente"
-THEN a confirmation modal must be displayed before leaving the result screen or starting a new game.
+THEN a confirmation modal must be displayed before leaving the result screen (returning to the Main Menu or to the Setup screen, respectively).
 17. FEATURE 3 — Gallery
 17.1 Purpose
 The Gallery allows the player to study the anatomical models outside of the quiz. The Gallery must display anatomical model images in a grid.
@@ -575,22 +617,21 @@ existing unrelated functionality is not broken;
 no placeholder implementation remains for a required feature;
 no requirement has been satisfied through an undocumented assumption.
 For the Game feature specifically:
-a complete question can be answered through the text field;
-an incorrect text answer transitions to the alternatives;
-the alternatives correctly award 5 or 0 points;
-score tracking works;
+the Setup screen ("Nova partida") allows configuring animal, skeleton regions, question count, answer mode, and 30s timer;
+questions can be answered according to the selected mode (`Padrão`, `Só alternativas`, `Só digitar`) and optional 30s timer;
+score tracking works (`10 / 5 / 0` in `Padrão`, `10 / 0` in `Só alternativas` and `Só digitar`);
 correct/incorrect counts work;
 the final result is displayed;
-returning to the menu behaves differently depending on whether the game is active or finished.
+returning to the menu behaves differently depending on whether the user is on the Setup screen (no confirmation) or in an active/finished game (confirmation required).
 29. Open Questions / Implementation Blockers
-None. All prior blockers (Alternative generation rules and Missing image assets) have been successfully resolved during implementation.
+None. All prior blockers (Alternative generation rules and Missing image assets, including Cat skeletal images) have been successfully resolved during implementation.
 
 30. Pre-Implementation Requirement
 Before implementation begins, the implementer must confirm understanding of:
 the global project requirements;
 the navigation model;
 the Main Menu behavior;
-the Game flow;
+the Game Setup and flow;
 the scoring rules;
 the final result rules;
 the Gallery behavior;
