@@ -10,7 +10,6 @@ import { TRANSLATIONS } from "@/data/locales";
 const NAV_ITEMS = [
   { labelKey: "play", icon: <PlayIcon />, href: "/game", primary: true },
   { labelKey: "gallery", icon: <GalleryIcon />, href: "/gallery", primary: false },
-  { labelKey: "about", icon: <InfoIcon />, href: "/about", primary: false },
   { labelKey: "exit", icon: <ExitIcon />, href: "#", primary: false },
 ] as const;
 
@@ -263,15 +262,6 @@ function GalleryIcon() {
       <rect x="9" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.5" />
       <rect x="1.5" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.5" />
       <rect x="9" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
-}
-function InfoIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-      <line x1="8" y1="7" x2="8" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="8" cy="4.5" r="1" fill="currentColor" />
     </svg>
   );
 }

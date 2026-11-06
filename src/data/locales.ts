@@ -3,7 +3,6 @@ export const TRANSLATIONS = {
     menu: {
       play: "Jogar",
       gallery: "Galeria",
-      about: "Sobre",
       exit: "Sair",
       subtitle: "Anatomia Veterinária",
       footer: "Zootomia v1.0 · Educação Veterinária",
@@ -121,11 +120,6 @@ export const TRANSLATIONS = {
       structures: "Estruturas Anatômicas",
       hint: "Passe o mouse ou clique em um item para destacá-lo",
     },
-    about: {
-      back: "Voltar",
-      title: "Sobre",
-      content: "A ser definido",
-    },
     anatomy: {
       bonesCount: "Ossos",
       organsCount: "Órgãos",
@@ -136,7 +130,6 @@ export const TRANSLATIONS = {
     menu: {
       play: "Jugar",
       gallery: "Galería",
-      about: "Acerca de",
       exit: "Salir",
       subtitle: "Anatomía Veterinaria",
       footer: "Zootomia v1.0 · Educación Veterinária",
@@ -253,11 +246,6 @@ export const TRANSLATIONS = {
       hideNames: "Ocultar Nombres",
       structures: "Estructuras Anatómicas",
       hint: "Pase el ratón o haga clic en un elemento para destacarlo",
-    },
-    about: {
-      back: "Volver",
-      title: "Acerca de",
-      content: "Por definir",
     },
     anatomy: {
       bonesCount: "Huesos",

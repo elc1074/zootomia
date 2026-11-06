@@ -40,7 +40,7 @@ The application will eventually be packaged using Electron. Features that intera
 3.3 Desktop target
 The application is intended for desktop use. Mobile-specific layouts and interactions are not part of the current scope. The interface must remain usable when the desktop application window is resized, unless the existing project explicitly establishes a fixed-window behavior.
 4. Global Navigation
-The application contains four primary routes (`Main Menu`, `Game` — which includes the `Setup`, `In Progress`, and `Finished` states — `Gallery`, and `About`):
+The application contains three primary routes (`Main Menu`, `Game` — which includes the `Setup`, `In Progress`, and `Finished` states — and `Gallery`):
 4.1 Navigation map
 Current Screen
 User Action
@@ -51,9 +51,6 @@ Game (Setup screen — "Nova partida")
 Main Menu
 Click "Galeria"
 Gallery
-Main Menu
-Click "Sobre"
-About
 Main Menu
 Click "Sair" and confirm
 Application exit
@@ -72,18 +69,14 @@ Game (Setup screen — "Nova partida")
 Gallery
 Return to main menu
 Main Menu
-About
-Return to main menu
-Main Menu
 
 4.2 Navigation restrictions
 The Game screen has special navigation behavior. Leaving an active game (`IN_PROGRESS`) or the finished result screen (`FINISHED`) requires user confirmation because the current game progress or displayed result will be discarded. Starting a new game from the result screen ("Jogar novamente") also requires confirmation before returning to the Setup screen (`SETUP`). Returning to the Main Menu from the Setup screen (`SETUP`) does not require confirmation because no match has started yet.
 5. FEATURE 1 — Main Menu
 5.1 Purpose
-The Main Menu is the initial screen of the game and acts as the primary navigation interface. The screen must provide four actions:
+The Main Menu is the initial screen of the game and acts as the primary navigation interface. The screen must provide three actions:
 Jogar
 Galeria
-Sobre
 Sair
 5.2 Existing visual identity
 The existing Main Menu visual identity must be preserved. The implementation must maintain:
@@ -98,7 +91,6 @@ game title;
 current game version;
 "Jogar" button;
 "Galeria" button;
-"Sobre" button;
 "Sair" button;
 a language toggle button (PT/ES) in the top right corner.
 No additional explanatory or decorative text should be introduced.
@@ -114,9 +106,6 @@ the user must be taken to the Game route in the Setup state ("Nova partida") to 
 Galeria
 When the user clicks Galeria:
 the user must be taken to the Gallery screen.
-Sobre
-When the user clicks Sobre:
-the user must be taken to the About screen.
 Sair
 When the user clicks Sair:
 the application must not immediately close;
@@ -137,10 +126,9 @@ WHEN the initial screen is displayed
 THEN the Main Menu must be displayed.
 AC-2. Required menu actions
 GIVEN the Main Menu is displayed
-THEN it must contain exactly these four primary action buttons:
+THEN it must contain exactly these three primary action buttons:
 Jogar
 Galeria
-Sobre
 Sair
 AC-3. Game navigation
 GIVEN the user is on the Main Menu
@@ -150,20 +138,16 @@ AC-4. Gallery navigation
 GIVEN the user is on the Main Menu
 WHEN the user clicks "Galeria"
 THEN the Gallery screen must be displayed.
-AC-5. About navigation
-GIVEN the user is on the Main Menu
-WHEN the user clicks "Sobre"
-THEN the About screen must be displayed.
-AC-6. Exit confirmation
+AC-5. Exit confirmation
 GIVEN the user is on the Main Menu
 WHEN the user clicks "Sair"
 THEN an exit confirmation modal must be displayed containing:
 Tem certeza de que deseja sair?
-AC-7. Cancel exit
+AC-6. Cancel exit
 GIVEN the exit confirmation modal is displayed
 WHEN the user cancels the action
 THEN the application must remain open and the Main Menu must remain available.
-AC-8. Confirm exit
+AC-7. Confirm exit
 GIVEN the exit confirmation modal is displayed
 WHEN the user confirms the action
 THEN the application's exit mechanism must be invoked.
@@ -506,39 +490,19 @@ GIVEN the enlarged viewer is displayed
 WHEN the player activates "Mostrar Nomes"
 THEN numbered markers must appear on the anatomical structures alongside an interactive lateral list of names without overlapping text on the image
 AND hovering or clicking a structure in the list or on the image must highlight the corresponding anatomical point and display its high-contrast label.
-19. FEATURE 4 — About
-19.1 Purpose
-The About screen provides information about the general operation and purpose of Zootomia.
-The screen does not contain game functionality.
-19.2 Content
-The screen must contain an explanatory text about the general operation of the system that has not been defined yet.
-19.3 Navigation
-The About screen must contain a control allowing the user to return to the Main Menu. Clicking the control must navigate directly to the Main Menu.
-20. Feature 4 — Acceptance Criteria
-AC-4.1 About access
-GIVEN the player is on the Main Menu
-WHEN the player clicks "Sobre"
-THEN the About screen must be displayed.
-AC-4.2 About content
-GIVEN the About screen is displayed
-THEN the specified About content must be visible.
-AC-4.3 About return
-GIVEN the player is on the About screen
-WHEN the player activates the return-to-menu control
-THEN the Main Menu must be displayed.
-21. Assets
+19. Assets
 The implementation must use the final image assets provided in the project:
 Main Menu dog image;
-anatomical model images for the Game and Gallery (located in `public/images/bones/`);
+anatomical model images for the Game and Gallery (located in `public/images/bones/` and `public/images/nerves/`);
 The exact asset filenames and locations are defined in `src/data/anatomy.ts`.
 
-21.5 FEATURE 5 — Annotate Tool
-21.5.1 Purpose
+19.5 FEATURE 4 — Annotate Tool
+19.5.1 Purpose
 The application contains an internal development/teacher tool available at `/annotate`. This tool allows users to load anatomical images and visually map the (x, y) coordinates for new structures.
-21.5.2 Usage
+19.5.2 Usage
 This feature is intended for internal data generation and does not need to be accessible from the Main Menu.
-22. UI and Visual Requirements
-22.1 Existing design
+20. UI and Visual Requirements
+20.1 Existing design
 The existing visual design is the baseline for the application.
 The implementation must preserve:
 existing typography where appropriate;
@@ -547,25 +511,25 @@ existing visual hierarchy;
 existing image treatment;
 existing component styling conventions.
 Changes should be made only when required by this specification.
-22.2 Unnecessary content
+20.2 Unnecessary content
 Do not add:
 explanatory paragraphs where they are not required;
 decorative text;
 placeholder labels;
 debug information;
 technical information intended only for developers.
-23. Interaction and Accessibility
+21. Interaction and Accessibility
 The current specification explicitly requires mouse interaction.
-24. Error and Edge Cases
-24.1 Empty text answer
+22. Error and Edge Cases
+22.1 Empty text answer
 The player must not be able to submit an empty textual answer. An empty input should be caught before answer evaluation. If the player tries to send an empty answer, a text appears under the input box “É necessário fornecer uma resposta”.
-24.2 Missing image
+22.2 Missing image
 If a question references an image that cannot be loaded, the application must not crash. Where the image should be appearing, appears the text “Falha ao carregar imagem” instead.
-24.3 Invalid question data
+22.3 Invalid question data
 If a question does not contain sufficient information to display or evaluate the question, the application must not silently produce an invalid question. The behavior for invalid question data should be handled as a development/data integrity error.
-24.4 Browser refresh during game
+22.4 Browser refresh during game
 The specification states that game progress is not persisted. Therefore, a browser refresh or application reload during an active game may result in the current game being lost. No persistence mechanism should be introduced solely to preserve the game across refreshes.
-25. Persistence
+23. Persistence
 No player account or game-progress persistence is required for the current version.
 The system does not require:
 user accounts;
@@ -574,7 +538,7 @@ online synchronization;
 saved game progress;
 player profiles;
 rankings.
-26. Out of Scope
+24. Out of Scope
 The following features are outside the scope of this specification:
 user registration;
 user login;
@@ -593,7 +557,7 @@ mobile-specific interface;
 final Electron packaging/distribution;
 features not explicitly defined in this specification.
 Electron compatibility is required where explicitly stated, but the final Electron packaging process is not part of this implementation.
-27. Implementation Constraints
+25. Implementation Constraints
 The implementation must:
 Continue the existing project.
 Use the existing Next.js/React application.
@@ -605,7 +569,7 @@ Avoid unnecessary architectural rewrites.
 Avoid implementing unspecified features.
 Keep game logic separate from presentation where consistent with the existing architecture.
 Keep operating-system-specific behavior abstracted so that Electron integration can be added without redesigning the user-facing feature.
-28. Definition of Done
+26. Definition of Done
 A feature is considered implemented when:
 all acceptance criteria for the feature pass;
 the specified navigation works;
@@ -617,16 +581,16 @@ existing unrelated functionality is not broken;
 no placeholder implementation remains for a required feature;
 no requirement has been satisfied through an undocumented assumption.
 For the Game feature specifically:
-the Setup screen ("Nova partida") allows configuring animal, skeleton regions, question count, answer mode, and 30s timer;
+the Setup screen ("Nova partida") allows configuring system, animal, anatomical regions, question count, answer mode, and 30s timer;
 questions can be answered according to the selected mode (`Padrão`, `Só alternativas`, `Só digitar`) and optional 30s timer;
 score tracking works (`10 / 5 / 0` in `Padrão`, `10 / 0` in `Só alternativas` and `Só digitar`);
 correct/incorrect counts work;
 the final result is displayed;
 returning to the menu behaves differently depending on whether the user is on the Setup screen (no confirmation) or in an active/finished game (confirmation required).
-29. Open Questions / Implementation Blockers
+27. Open Questions / Implementation Blockers
 None. All prior blockers (Alternative generation rules and Missing image assets, including Cat skeletal images) have been successfully resolved during implementation.
 
-30. Pre-Implementation Requirement
+28. Pre-Implementation Requirement
 Before implementation begins, the implementer must confirm understanding of:
 the global project requirements;
 the navigation model;
@@ -635,7 +599,6 @@ the Game Setup and flow;
 the scoring rules;
 the final result rules;
 the Gallery behavior;
-the About screen requirements;
 the persistence rules;
 the Electron compatibility requirements.
 If any requirement remains ambiguous after reviewing this specification, implementation must pause and the ambiguity must be reported as an open question. The implementer must not resolve a functional ambiguity by making an undocumented assumption.

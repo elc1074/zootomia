@@ -256,7 +256,7 @@ Chips na tela de resultado, abaixo do resumo.
 Chips no card 9:16 e 1:1 (seção 9). Sem medalhas, a linha de chips não aparece e o layout não deixa buraco.
 6. Sessão e comparação com a partida anterior
 A sessão guarda em memória o resumo das partidas terminadas enquanto o app está aberto, só para mostrar "+N vs. partida anterior". Nada vai para disco.
-Onde fica: um contexto React (SessionContext) montado no layout.tsx, ao lado do LanguageProvider, para sobreviver à navegação entre Menu, Jogo, Galeria e Sobre.
+Onde fica: um contexto React (SessionContext) montado no layout.tsx, ao lado do LanguageProvider, para sobreviver à navegação entre Menu, Jogo e Galeria.
 O que guarda: uma lista SessionGame[] com imagem, pontuação, pontuação máxima, acertos, erros e horário de término (seção 14). Nada mais.
 Quando grava: somente quando a partida chega a FINISHED. Partida abandonada pelo "Menu" com confirmação não entra na lista.
 Comparação: delta = pct atual − pct da última partida terminada da sessão, convertido para pontos na escala da partida atual e arredondado. Exibido como "+15", "−10" ou "=" (igual).
