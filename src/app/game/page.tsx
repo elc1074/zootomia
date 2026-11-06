@@ -55,8 +55,13 @@ type OssoEntry = {
   regiao: Region;
 };
 
-function getUniqueStructuresForSpecies(especie: string): OssoEntry[] {
-  const images = IMAGES.filter((img) => img.especie === especie);
+function getUniqueStructuresForSpecies(
+  especie: string,
+  sistema: "esqueletico" | "nervoso" = "esqueletico"
+): OssoEntry[] {
+  const images = IMAGES.filter(
+    (img) => img.especie === especie && (img.sistema ?? "esqueletico") === sistema
+  );
   const ossos = new Map<string, OssoEntry>();
 
   for (const image of images) {
@@ -84,7 +89,7 @@ function getUniqueStructuresForSpecies(especie: string): OssoEntry[] {
 }
 
 function buildQuestionsFromConfig(config: GameSetupConfig): Question[] {
-  const allStructures = getUniqueStructuresForSpecies(config.especie);
+  const allStructures = getUniqueStructuresForSpecies(config.especie, config.sistema);
   const filtered = allStructures.filter((o) => config.regions.includes(o.regiao));
   if (filtered.length === 0) return [];
 
@@ -536,7 +541,7 @@ export default function Game() {
                 <div className="flex items-center gap-2">
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E8C252" }} />
                   <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#5C3D20", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                    {t.identifyStructure}
+                    {setupConfig.sistema === "nervoso" ? t.identifyNerveStructure : t.identifyStructure}
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
@@ -690,7 +695,7 @@ export default function Game() {
                           setTextAnswer(e.target.value);
                           setEmptyError(false);
                         }}
-                        placeholder={t.typeAnswerPlaceholder}
+                        placeholder={setupConfig.sistema === "nervoso" ? t.typeAnswerPlaceholderNervous : t.typeAnswerPlaceholder}
                         style={{
                           flex: 1,
                           fontFamily: "'Nunito', sans-serif",
@@ -971,11 +976,15 @@ function SetupScreen({
   setLanguage: (lang: "pt" | "es") => void;
   tSetup: any;
 }) {
-  const dogImages = IMAGES.filter((img) => img.especie === "Canis lupus familiaris");
-  const catImages = IMAGES.filter((img) => img.especie === "Felis catus");
+  const dogImages = IMAGES.filter(
+    (img) => img.especie === "Canis lupus familiaris" && (img.sistema ?? "esqueletico") === config.sistema
+  );
+  const catImages = IMAGES.filter(
+    (img) => img.especie === "Felis catus" && (img.sistema ?? "esqueletico") === config.sistema
+  );
 
-  const dogStructures = getUniqueStructuresForSpecies("Canis lupus familiaris");
-  const catStructures = getUniqueStructuresForSpecies("Felis catus");
+  const dogStructures = getUniqueStructuresForSpecies("Canis lupus familiaris", config.sistema);
+  const catStructures = getUniqueStructuresForSpecies("Felis catus", config.sistema);
 
   const currentSpeciesStructures = config.especie === "Felis catus" ? catStructures : dogStructures;
 
@@ -992,6 +1001,32 @@ function SetupScreen({
   const maxScore = effectiveQuestionCount * 10;
 
   const allRegionsSelected = config.regions.length === 3;
+  const isNervous = config.sistema === "nervoso";
+  const axialLabel = isNervous ? tSetup.axialNervous : tSetup.axial;
+  const axialSubLabel = isNervous ? tSetup.axialNervousSub : tSetup.axialSub;
+  const thoracicSubLabel = isNervous ? tSetup.thoracicNervousSub : tSetup.thoracicSub;
+  const pelvicSubLabel = isNervous ? tSetup.pelvicNervousSub : tSetup.pelvicSub;
+
+  function selectSistema(sistema: "esqueletico" | "nervoso") {
+    const nextCatStructs = getUniqueStructuresForSpecies("Felis catus", sistema);
+    const nextDogStructs = getUniqueStructuresForSpecies("Canis lupus familiaris", sistema);
+    const nextEspecie =
+      config.especie === "Felis catus" && nextCatStructs.length === 0
+        ? "Canis lupus familiaris"
+        : config.especie;
+    const structs = nextEspecie === "Felis catus" ? nextCatStructs : nextDogStructs;
+    const nextPoolCount = structs.filter((s) => config.regions.includes(s.regiao)).length;
+    let nextQCount = config.questionCount;
+    if (typeof nextQCount === "number" && nextQCount > nextPoolCount) {
+      nextQCount = "all";
+    }
+    setConfig((prev) => ({
+      ...prev,
+      sistema,
+      especie: nextEspecie,
+      questionCount: nextQCount,
+    }));
+  }
 
   function toggleRegion(reg: Region) {
     setConfig((prev) => {
@@ -1043,7 +1078,7 @@ function SetupScreen({
   const regionsSummaryLabel = allRegionsSelected
     ? tSetup.allRegions
     : config.regions
-        .map((r) => (r === "axial" ? tSetup.axial : r === "toracico" ? tSetup.thoracic : tSetup.pelvic))
+        .map((r) => (r === "axial" ? axialLabel : r === "toracico" ? tSetup.thoracic : tSetup.pelvic))
         .join(", ");
 
   return (
@@ -1148,62 +1183,73 @@ function SetupScreen({
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <span style={sectionLabelStyle}>{tSetup.system}</span>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                {/* Esquelético (Active) */}
-                <button
-                  type="button"
-                  onClick={() => setConfig((prev) => ({ ...prev, sistema: "esqueletico" }))}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "14px 16px",
-                    borderRadius: 12,
-                    background: "#1C3528",
-                    color: "#FFFFFF",
-                    border: "2px solid #1C3528",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
-                >
-                  <RadioCircle selected={true} darkBg={true} />
-                  <div>
-                    <div style={{ fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: "1.1rem", lineHeight: 1.1 }}>
-                      {tSetup.skeletal}
-                    </div>
-                    <div style={{ fontSize: "0.76rem", color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>
-                      {tSetup.skeletalSub}
-                    </div>
-                  </div>
-                </button>
+                {/* Esquelético */}
+                {(() => {
+                  const isSkeletal = config.sistema === "esqueletico";
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => selectSistema("esqueletico")}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "14px 16px",
+                        borderRadius: 12,
+                        background: isSkeletal ? "#1C3528" : "#EFE4D2",
+                        color: isSkeletal ? "#FFFFFF" : "#1A2E22",
+                        border: isSkeletal ? "2px solid #1C3528" : "1.5px solid rgba(100,70,40,0.18)",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <RadioCircle selected={isSkeletal} darkBg={isSkeletal} />
+                      <div>
+                        <div style={{ fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: "1.1rem", lineHeight: 1.1 }}>
+                          {tSetup.skeletal}
+                        </div>
+                        <div style={{ fontSize: "0.76rem", color: isSkeletal ? "rgba(255,255,255,0.7)" : "#6B4A2A", fontWeight: 600 }}>
+                          {tSetup.skeletalSub}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
 
-                {/* Nervoso (Disabled / Future) */}
-                <button
-                  type="button"
-                  disabled
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "14px 16px",
-                    borderRadius: 12,
-                    background: "#EFE4D2",
-                    color: "#1A2E22",
-                    border: "1.5px solid rgba(100,70,40,0.18)",
-                    cursor: "not-allowed",
-                    opacity: 0.65,
-                    textAlign: "left",
-                  }}
-                >
-                  <RadioCircle selected={false} darkBg={false} />
-                  <div>
-                    <div style={{ fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: "1.1rem", lineHeight: 1.1 }}>
-                      {tSetup.nervous}
-                    </div>
-                    <div style={{ fontSize: "0.76rem", color: "#6B4A2A", fontWeight: 600 }}>
-                      {tSetup.nervousSub}
-                    </div>
-                  </div>
-                </button>
+                {/* Nervoso */}
+                {(() => {
+                  const isNerv = config.sistema === "nervoso";
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => selectSistema("nervoso")}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "14px 16px",
+                        borderRadius: 12,
+                        background: isNerv ? "#1C3528" : "#EFE4D2",
+                        color: isNerv ? "#FFFFFF" : "#1A2E22",
+                        border: isNerv ? "2px solid #1C3528" : "1.5px solid rgba(100,70,40,0.18)",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <RadioCircle selected={isNerv} darkBg={isNerv} />
+                      <div>
+                        <div style={{ fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: "1.1rem", lineHeight: 1.1 }}>
+                          {tSetup.nervous}
+                        </div>
+                        <div style={{ fontSize: "0.76rem", color: isNerv ? "rgba(255,255,255,0.7)" : "#6B4A2A", fontWeight: 600 }}>
+                          {tSetup.nervousSub}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
               </div>
             </div>
 
@@ -1248,9 +1294,11 @@ function SetupScreen({
                 {/* Gato */}
                 {(() => {
                   const isCat = config.especie === "Felis catus";
+                  const catDisabled = catImages.length === 0;
                   return (
                     <button
                       type="button"
+                      disabled={catDisabled}
                       onClick={() => selectSpecies("Felis catus")}
                       style={{
                         display: "flex",
@@ -1261,7 +1309,8 @@ function SetupScreen({
                         background: isCat ? "#1C3528" : "#EFE4D2",
                         color: isCat ? "#FFFFFF" : "#1A2E22",
                         border: isCat ? "2px solid #1C3528" : "1.5px solid rgba(100,70,40,0.18)",
-                        cursor: "pointer",
+                        cursor: catDisabled ? "not-allowed" : "pointer",
+                        opacity: catDisabled ? 0.5 : 1,
                         textAlign: "left",
                         transition: "all 0.15s ease",
                       }}
@@ -1282,11 +1331,11 @@ function SetupScreen({
             </div>
           </div>
 
-          {/* Row 2: REGIÕES DO ESQUELETO */}
+          {/* Row 2: REGIÕES */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div className="flex items-center justify-between">
               <div className="flex items-baseline gap-2">
-                <span style={sectionLabelStyle}>{tSetup.regionsTitle}</span>
+                <span style={sectionLabelStyle}>{isNervous ? tSetup.regionsTitleNervous : tSetup.regionsTitle}</span>
                 <span style={{ fontSize: "0.74rem", color: "#6B4A2A", fontWeight: 600 }}>{tSetup.regionsHint}</span>
               </div>
               <button
@@ -1329,9 +1378,9 @@ function SetupScreen({
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
               {[
-                { id: "axial" as Region, title: tSetup.axial, sub: tSetup.axialSub, count: axialCount },
-                { id: "toracico" as Region, title: tSetup.thoracic, sub: tSetup.thoracicSub, count: toracicoCount },
-                { id: "pelvico" as Region, title: tSetup.pelvic, sub: tSetup.pelvicSub, count: pelvicoCount },
+                { id: "axial" as Region, title: axialLabel, sub: axialSubLabel, count: axialCount },
+                { id: "toracico" as Region, title: tSetup.thoracic, sub: thoracicSubLabel, count: toracicoCount },
+                { id: "pelvico" as Region, title: tSetup.pelvic, sub: pelvicSubLabel, count: pelvicoCount },
               ].map((reg) => {
                 const checked = config.regions.includes(reg.id);
                 return (
@@ -1567,7 +1616,7 @@ function SetupScreen({
             {/* Summary Table */}
             <div style={{ display: "flex", flexDirection: "column" }}>
               {[
-                { label: tSetup.summarySystem, value: tSetup.skeletal },
+                { label: tSetup.summarySystem, value: isNervous ? tSetup.nervous : tSetup.skeletal },
                 { label: tSetup.summaryAnimal, value: config.especie === "Felis catus" ? tSetup.cat : tSetup.dog },
                 { label: tSetup.summaryRegions, value: regionsSummaryLabel },
                 { label: tSetup.summaryInPool, value: `${poolCount} ${tSetup.structuresCount}` },
@@ -1598,7 +1647,7 @@ function SetupScreen({
               </div>
 
               {[
-                { id: "axial" as Region, label: tSetup.axial, est: estAxial },
+                { id: "axial" as Region, label: axialLabel, est: estAxial },
                 { id: "toracico" as Region, label: tSetup.thoracic, est: estToracico },
                 { id: "pelvico" as Region, label: tSetup.pelvic, est: estPelvico },
               ].map((r) => {

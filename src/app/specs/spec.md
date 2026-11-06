@@ -175,10 +175,10 @@ Before each match begins (whether navigating from the Main Menu or clicking "Jog
 The Setup screen consists of a configuration panel on the left and a live match summary sidebar ("Resumo da partida") on the right, plus a header with a `< Menu` button, title "Nova partida", and PT/ES language toggle:
 1. **Sistema (System):**
    - `Esquelético` (active — "Ossos e relevos")
-   - `Nervoso` (disabled / coming soon — "Nervos periféricos")
+   - `Nervoso` (active — "Nervos periféricos")
 2. **Animal (Species):**
-   - `Cão` (`Canis lupus familiaris`) — displays total images and structures available.
-   - `Gato` (`Felis catus`) — displays total images and structures available.
+   - `Cão` (`Canis lupus familiaris`) — displays total images and structures available for the selected system (4 skeletal images / 6 nervous system images).
+   - `Gato` (`Felis catus`) — displays total images and structures available for the selected system (3 skeletal images; disabled when a system has 0 images for the species).
 3. **Regiões do Esqueleto (Skeleton Regions — at least one required, plus a "Todas" toggle button):**
    - `Esqueleto axial` ("Crânio, coluna, costelas")
    - `Membro torácico` ("Escápula, úmero, rádio, carpo")

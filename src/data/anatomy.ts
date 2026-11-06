@@ -322,14 +322,6 @@ export const IMAGES: AnatomyImage[] = [
       { name: { pt: "Osso sesamóide proximal", es: "Hueso sesamoideo proximal" }, aceita: ["hueso sesamoideo proximal", "osso sesamoide proximal"], x: 0.771, y: 0.921 },
     ],
   },
-];
-
-export const IMAGES_RESERVADAS: AnatomyImage[] = [];
-
-// Imagens do sistema nervoso já mapeadas. Ficam fora de IMAGES porque o jogo filtra só por
-// espécie (ignora "sistema") e elas se misturariam às perguntas de ossos do cão; a galeria
-// também não as lê. O modo "Nervoso" do setup ainda está desabilitado.
-export const IMAGES_NERVOSO: AnatomyImage[] = [
   {
     id: "cao-nervoso-encefalo-ventral",
     titulo: { pt: "Encéfalo do cão — vista ventral (nervos cranianos)", es: "Encéfalo del perro — vista ventral (nervios craneales)" },
@@ -489,3 +481,6 @@ export const IMAGES_NERVOSO: AnatomyImage[] = [
     ],
   },
 ];
+
+export const IMAGES_RESERVADAS: AnatomyImage[] = [];
+export const IMAGES_NERVOSO: AnatomyImage[] = IMAGES.filter((img) => img.sistema === "nervoso");

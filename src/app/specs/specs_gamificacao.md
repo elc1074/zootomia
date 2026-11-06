@@ -81,10 +81,10 @@ A tela de Setup apresenta um cabeçalho com botão `< Menu` (que retorna ao Menu
 À esquerda ficam as opções de configuração e à direita a coluna `"RESUMO DA PARTIDA"` com o botão `"Começar partida →"`:
 1. **SISTEMA:**
    - `Esquelético` (ativo — "Ossos e relevos").
-   - `Nervoso` (desabilitado / em breve — "Nervos periféricos").
+   - `Nervoso` (ativo — "Nervos periféricos").
 2. **ANIMAL:**
-   - `Cão` (`Canis lupus familiaris` — 4 imagens).
-   - `Gato` (`Felis catus` — 3 imagens).
+   - `Cão` (`Canis lupus familiaris` — 4 imagens no sistema esquelético e 6 imagens no sistema nervoso).
+   - `Gato` (`Felis catus` — 3 imagens no sistema esquelético; desabilitado quando o sistema selecionado não possui imagens cadastradas para a espécie).
 3. **REGIÕES DO ESQUELETO (pelo menos uma obrigatória, com botão "Todas"):**
    - `Esqueleto axial` ("Crânio, coluna, costelas").
    - `Membro torácico` ("Escápula, úmero, rádio, carpo").
